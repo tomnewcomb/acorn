@@ -8,6 +8,6 @@ Regenerate geometry with Python 3, NumPy and Shapely 2.1 or later:
 
     python tools/euclid-convert.py path/to/Model,de1 path/to/geometry.json
 
-The converter is based on observed records in these three files, not an authoritative Euclid format specification. It validates record extents and object references, applies nested transforms (Z, Y, X rotation order), fills paths using the even-odd rule, preserves retraced linework, and reconstructs profile-joined surfaces. A model's editor camera is omitted from displayed geometry. All source data remains in the original download.
+The converter is based on observed records in these three files, not an authoritative Euclid format specification. It validates record extents and object references, applies nested transforms (Z, Y, X rotation order), fills paths using the even-odd rule, preserves retraced linework, and reconstructs profile-joined surfaces. A model's editor camera is omitted from displayed geometry. After instancing, derived geometry reflects the Z coordinate and reverses triangle winding to convert source handedness for the browser. All source data remains in the original download.
 
 Colours currently interpret the low colour byte as red. Unresolved appearance values use neutral grey. Material flags, joining/capping rules and lighting are provisional. No image textures are supplied or invented. The wall visibility control only changes the browser view.
