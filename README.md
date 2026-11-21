@@ -12,7 +12,7 @@ Push to `main`. GitHub Pages publishes directly from the root of this branch. Un
 
 ## Content
 
-Wire Cutter was coded by Thomas Newcomb. Jonathan Newcomb drove its user-interface design and designed and built the cutter and hardware protocol. Menubu was coded by David Newcomb.
+Wire Cutter was coded by Thomas Newcomb. Jonathan Newcomb drove its user-interface design and designed and built the cutter and hardware protocol. Menubu was coded by David Newcomb. Halls of the Things was coded by Thomas Newcomb and credits August 1996 in its title text. Its original tokenised BASIC program is preserved alongside a complete decoded listing, annotated reading copy, extracted sprites and a maze-generation demonstration.
 
 Original source and binary downloads are preserved. Annotated listings and browser demonstrations are retrospective additions. Publication does not grant a new software licence.
 

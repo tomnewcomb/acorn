@@ -1,0 +1,1673 @@
+10 vs%=4
+20 ONERRORONERROROFF:PROCerror
+30 A%=RND(-TIME)
+40 DIMsysspr%40000,myspr%16384,mc%20000,B%20
+50 B%+=4
+60 !sysspr%=40000:SYS&2E,&10A,sysspr%,"<Obey$Dir>.Sprites"
+70 *QTMLoad <Obey$Dir>.Amber x
+80 cells%=(1<<8)/8
+90 b%=1<<8
+100 nobj%=256
+110 DIMobj%nobj%*64
+120 DIMmap% (2^8*(2^8+1))
+130 DIMmaze%(cells%-1,cells%+1)
+140 PROCass
+150 PROCbuildblocks
+160 tl%=35
+170 DIMS$(tl%),s%(tl%,2)
+180 RESTORE+0
+190 FORn%=0TO35:READS$(n%):NEXT
+200 DATA"Halls of the"
+210 DATA"   Things   "
+220 DATA"            "
+230 DATA" by Thomas  "
+240 DATA"  Newcomb   "
+250 DATA"            "
+260 DATA" © Aug 1996 "
+270 DATA"            "
+280 DATA" Aim of the "
+290 DATA" game is to "
+300 DATA"kill all the"
+310 DATA"nasties with"
+320 DATA" lightning, "
+330 DATA" fireballs, "
+340 DATA" arrows and "
+350 DATA" your sword."
+360 DATA"            "
+370 DATA"    Use     "
+380 DATA"Z, X, ', /, "
+390 DATA"  to move,  "
+400 DATA" RETURN for "
+410 DATA" lightning, "
+420 DATA" SHIFT for  "
+430 DATA" fireballs, "
+440 DATA"8, 6, 2, 4, "
+450 DATA"and 5 on the"
+460 DATA" keypad for "
+470 DATA" arrows, S  "
+480 DATA" for sword, "
+490 DATA"  SPACE to  "
+500 DATA"open doors, "
+510 DATA"CTRL to pick"
+520 DATA"up milk, and"
+530 DATA" H to heal. "
+540 DATA"            "
+550 DATA" Good Luck. "
+560 FORN%=0TOtl%
+570 s%(N%,0)=FNttw(LEFT$(S$(N%),4))
+580 s%(N%,1)=FNttw(MID$(S$(N%),5,4))
+590 s%(N%,2)=FNttw(RIGHT$(S$(N%),4))
+600 NEXT
+610 G%=obj%:H%=map%
+620 A%=obj%+64
+630 MODE9:OFF
+640 CALLfindscreen
+650 *Print <Obey$Dir>.Palette
+660 
+670 REPEAT
+680 *QTMStart
+690 PROCstartscreen
+700 PROCtrackerstop
+710 
+720 PROCsetupscreen
+730 E%=0
+740 !nastiesleft=100
+750 IFINKEY-91ANDINKEY-46THEN!nastiesleft=4
+760 M%=moveobjects:N%=drawmap:O%=nastiesleft:P%=obj%
+770 REPEAT
+780 CALLM%:WAIT:CALLN%:IF!O%=0ANDE%=0THENE%=-400
+790 IF!P%=50ANDE%=0THENE%=-200
+800 IFE%<0THEN
+810  E%+=1:IFE%=-1THENE%=2
+820  IFE%=-201THENE%=1
+830 ENDIF
+840 UNTILE%>0
+850 IFE%=1THENPROCdidit
+860 UNTILFALSE
+870 
+880 DEFPROCdidit
+890 B%!-4=&800:$B%="HTCheer":CALLmakesound
+900 TIME=0:REPEATUNTILTIME>100
+910 GCOL0
+920 FORN%=0TO768STEP4
+930 WAIT
+940 LINE512+N%,0,512+N%,1023:LINE512-N%,0,512-N%,1023
+950 NEXT
+960 FORN%=-764TO258STEP4
+970 WAIT:SYS"OS_SpriteOp",256+34,sysspr%,"nastie",N%,212,0
+980 NEXT
+990 TIME=0:REPEATUNTILTIME>100
+1000 LX=640-191*2:LY=512-150*2
+1010 HX=640+191*2:HY=512+150*2
+1020 GCOL0
+1030 B%!-4=&1B00:$B%="HTBigNDeat":CALLmakesound
+1040 FORN%=212TO1023
+1050 SX=RND(HX-LX):SY=RND(HY-LY)
+1060 X=RND(HX-SX)+LX:Y=RND(HY-SY)+LY
+1070 DX=(RND(5)-3)*4
+1080 DY=(RND(5)-1)*4
+1090 RECTANGLEX,Y,SX,SY TO X+DX,Y+DY
+1100 LINE0,N%,1279,N%
+1110 NEXT
+1120 ENDPROC
+1130 
+1140 DEFFNttb(X$)
+1150 CASETRUE OF
+1160 WHENX$=" ":=0
+1170 WHENX$=".":=252
+1180 WHENX$=",":=253
+1190 WHENX$="©":=254
+1200 WHENX$="&":=255
+1210 WHENX$="/":=188
+1220 WHENX$="'":=189
+1230 WHENX$<="9":=ASCX$-ASC"0"+190
+1240 WHENX$<="Z":=ASCX$-ASC"A"+200
+1250 OTHERWISE:=ASCX$-ASC"a"+226
+1260 ENDCASE
+1270 
+1280 DEFFNttw(X$)
+1290 =FNttb(LEFT$(X$,1))+(FNttb(MID$(X$,2,1))<<8)+(FNttb(MID$(X$,3,1))<<16)+(FNttb(RIGHT$(X$,1))<<24)
+1300 
+1310 DEFPROCsetupobj
+1320 !obj%=64
+1330 obj%!12=2
+1340 obj%!24=100
+1350 obj%!28=100
+1360 obj%!32=100
+1370 obj%!36=map%+b%*b%-b%*8-8
+1380 FORN%=1TO50
+1390 obj%!(N%*64)=95+RND(3)
+1400 obj%!(N%*64+24)=20
+1410 obj%!(N%*64+28)=100
+1420 obj%!(N%*64+32)=15
+1430 REPEAT
+1440 X%=RND(b%-2-8*2)
+1450 Y%=RND(b%-2)
+1460 Z%=map%+X%+Y%*b%
+1470 UNTIL?Z%=0
+1480 obj%!(N%*64+36)=Z%
+1490 obj%!(N%*64+40)=1+RND(20)
+1500 obj%!(N%*64+44)=1
+1510 T%=RND(3)-1
+1520 obj%!(N%*64+20)=T%
+1530 CASET%OF
+1540 WHEN0:obj%!(N%*64+12)=eightdirs!(RND(8)*4-4)
+1550 WHEN1,2:obj%!(N%*64+12)=(RND(4)-1)*2
+1560 ENDCASE
+1570 NEXT
+1580 FORN%=51TOnobj%-1
+1590 obj%!(N%*64)=0
+1600 NEXT
+1610 ENDPROC
+1620 
+1630 DEFFNt=map%?((Y%+16)*b%+X%+16)<>0
+1640 
+1650 DEFPROCbuildblocks
+1660 CALLbuildblocks
+1670 ENDPROC
+1680 
+1690 DEFPROCcreatemap
+1700 FORN%=map%TOb%*(b%+1)+map%-1STEP4:!N%=0:NEXT
+1710 REM ###rightsize corridor
+1720 FORN%=b%-8*2+1TOb%-2
+1730 map%?N%=16:map%?(N%+b%*b%)=16
+1740 NEXT
+1750 FORN%=b%*2-1TOb%*b%STEPb%
+1760 map%?N%=17
+1770 NEXT
+1780 map%?(b%-1)=20:map%?(b%*(b%+1)-1)=19
+1790 PROCmaptext
+1800 REM ###designmaze
+1810 PROCmaze
+1820 REM ###draw horizontal bars
+1830 FORN%=0TOcells%-3:FORM%=0TOcells%
+1840 IF(maze%(N%+1,M%+1)AND8)=0THEN
+1850  ofs%=M%*b%*8+N%*8
+1860  IF(maze%(N%+1,M%+1)AND128)=0THEN
+1870   FORO%=1TO8-1:map%?(ofs%+O%)=16:NEXT
+1880  ELSE
+1890   FORO%=2TO8-2:map%?(ofs%+O%)=32:NEXT
+1900   map%?(ofs%+1)=29:map%?(ofs%+8-1)=27
+1910  ENDIF 
+1920 ENDIF
+1930 NEXT
+1940 NEXT
+1950 REM ###draw vertical bars
+1960 FORN%=0TOcells%-2:FORM%=0TOcells%-1
+1970 IF(maze%(N%+1,M%+1)AND1)=0THEN
+1980  ofs%=M%*b%*8+N%*8
+1990  IF(maze%(N%+1,M%+1)AND16)=0THEN
+2000   FORO%=1TO8-1:map%?(ofs%+O%*b%)=17:NEXT
+2010  ELSE
+2020   FORO%=2TO8-2:map%?(ofs%+O%*b%)=33:NEXT
+2030   map%?(ofs%+b%)=28:map%?(ofs%+(8-1)*b%)=26
+2040  ENDIF
+2050 ENDIF
+2060 NEXT
+2070 NEXT
+2080 REM ###corners
+2090 FORN%=0TOcells%-2
+2100 FORM%=0TOcells%
+2110 D%=0
+2120 IF(maze%(N%+1,M%+1)AND8)=0THEND%+=4
+2130 IF(maze%(N%+1,M%+1)AND1)=0THEND%+=2
+2140 IF(maze%(N%,M%+1)AND8)=0THEND%+=1
+2150 IF(maze%(N%+1,M%)AND1)=0THEND%+=8
+2160 CASED%OF
+2170 WHEN1:S%=29
+2180 WHEN2:S%=26
+2190 WHEN3:S%=20
+2200 WHEN4:S%=27
+2210 WHEN5:S%=16
+2220 WHEN6:S%=21
+2230 WHEN7:S%=25
+2240 WHEN8:S%=28
+2250 WHEN9:S%=19
+2260 WHEN10:S%=17
+2270 WHEN11:S%=24
+2280 WHEN12:S%=18
+2290 WHEN13:S%=23
+2300 WHEN14:S%=22
+2310 WHEN15:S%=30
+2320 ENDCASE
+2330 map%?(M%*b%*8+N%*8)=S%
+2340 NEXT
+2350 NEXT
+2360 REM ###Entrancehole
+2370 FORN%=map%+240+256*250TOmap%+240+256*254STEP256
+2380 ?N%=8
+2390 NEXT
+2400 ENDPROC
+2410 
+2420 DEFPROCmaptext
+2430 FORN%=0TOtl%
+2440 map%!(N%*512+754)=s%(N%,0)
+2450 map%!(N%*512+758)=s%(N%,1)
+2460 map%!(N%*512+762)=s%(N%,2)
+2470 NEXT
+2480 map%!(N%*512+754)=&1010101B
+2490 map%!(N%*512+758)=&10101010
+2500 map%!(N%*512+762)=&1D101010
+2510 ENDPROC
+2520 
+2530 DEFPROCemptylevel
+2540 FORN%=1TO255
+2550 FORM%=map%+N%*256+1TOmap%+N%*256+239
+2560 ?M%=0
+2570 NEXT
+2580 NEXT
+2590 ENDPROC
+2600 
+2610 DEFPROCcreatemap2
+2620 REM ###milk
+2630 FORN%=0TO20
+2640 REPEAT
+2650 X%=RND(b%-2-8*2)
+2660 Y%=RND(b%-2)
+2670 Z%=map%+X%+Y%*b%
+2680 UNTIL?Z%=0
+2690 ?Z%=(N%MOD6)+40
+2700 NEXT
+2710 ENDPROC
+2720 
+2730 DEFPROCmaze
+2740 FORN%=0TOcells%-1:maze%(N%,0)=5:maze%(N%,cells%+1)=5:NEXT
+2750 FORN%=0TOcells%:maze%(0,N%)=10:maze%(cells%-1,N%)=10:NEXT
+2760 maze%(cells%-1,1)=6
+2770 maze%(cells%-1,cells%)=12
+2780 maze%(0,cells%+1)=15
+2790 PROCrecmaze(cells%DIV2,cells%DIV2)
+2800 
+2810 REM### Add doors
+2820 FORN%=1TO100
+2830 X%=RND(cells%-2):Y%=RND(cells%-1):REM h
+2840 maze%(X%,Y%)=(maze%(X%,Y%)OR32)ANDNOT2
+2850 maze%(X%,Y%+1)=(maze%(X%,Y%+1)OR128)ANDNOT8
+2860 X%=RND(cells%-3):Y%=RND(cells%):REM v
+2870 maze%(X%,Y%)=(maze%(X%,Y%)OR64)ANDNOT4
+2880 maze%(X%+1,Y%)=(maze%(X%+1,Y%)OR16)ANDNOT1
+2890 NEXT
+2900 REM### Entrance 'door'
+2910 maze%(30,32)=(maze%(30,32)OR64)ANDNOT4
+2920 maze%(31,32)=(maze%(31,32)OR16)ANDNOT1
+2930 ENDPROC
+2940 
+2950 DEFPROCrecmaze(X%,Y%)
+2960 LOCALD%,N%
+2970 D%=RND(4)
+2980 FORN%=1TO4
+2990 NX%=X%:NY%=Y%
+3000 CASED%OF
+3010 WHEN1:NX%-=1
+3020 WHEN2:NY%+=1
+3030 WHEN3:NX%+=1
+3040 WHEN4:NY%-=1
+3050 ENDCASE
+3060 IFmaze%(NX%,NY%)=0THEN
+3070  maze%(X%,Y%)=maze%(X%,Y%)OR(1<<(D%-1))
+3080  OD%=D%+2:IFOD%>4THENOD%=D%-2
+3090  maze%(NX%,NY%)=maze%(NX%,NY%)OR(1<<(OD%-1))
+3100  PROCrecmaze(NX%,NY%)
+3110 ENDIF
+3120 D%+=1:IFD%=5THEND%=1
+3130 NEXT
+3140 ENDPROC
+3150 
+3160 DEFPROCsetupscreen
+3170 CLS
+3180 COLOUR14
+3190 PRINTTAB(33,0);"      N"
+3200 PRINTTAB(33,1);"H   A a"
+3210 PRINTTAB(33,2);"e M r s"
+3220 PRINTTAB(33,3);"a a r t"
+3230 PRINTTAB(33,4);"l g o i"
+3240 PRINTTAB(33,5);"t i w e"
+3250 PRINTTAB(33,6);"h c s s"
+3260 PRINTTAB(33,21);" Halls "
+3270 PRINTTAB(33,22);"of the "
+3280 PRINTTAB(33,23);"Things "
+3290 PRINTTAB(33,25);"  by   "
+3300 PRINTTAB(33,26);"Thomas "
+3310 PRINTTAB(33,27);"Newcomb"
+3320 GCOL6
+3330 FORN%=0TO255STEP64
+3340 RECTANGLEFILL1056+N%-4,788,31+4,-101*4
+3350 NEXT
+3360 
+3370 ENDPROC
+3380 
+3390 DEFPROCstartscreen
+3400 CLS
+3410 PROCdrawtitles
+3420 PROCcreatemap
+3430 REM PROCemptylevel
+3440 PROCcreatemap2
+3450 PROCsetupobj
+3460 PRINTTAB(0,29);"       Press any key to start...       ";
+3470 REPEATUNTILINKEY-129=255
+3480 REPEAT
+3490 TIME=0
+3500 REPEAT
+3510 IFINKEY-129<>255THENENDPROC
+3520 UNTILTIME>300
+3530 FORM=1TO5
+3540 TIME=0
+3550 REPEAT
+3560 IFINKEY-129<>255THENENDPROC
+3570 UNTILTIME>50
+3580 P=RND(180):Z=RND(1)*2+.5:R=20
+3590 FORN=0TO1279STEP4
+3600 RECTANGLEFILLN,0,1,1023TON,SINRAD(P+N/Z)*R
+3610 IFINKEY-129<>255THENENDPROC
+3620 NEXT
+3630 P=RND(180):Z=RND(1)*2+.5
+3640 FORN=0TO1023STEP4
+3650 RECTANGLEFILL0,N,1279,3TOSINRAD(P+N/Z)*R,N
+3660 IFINKEY-129<>255THENENDPROC
+3670 NEXT
+3680 NEXT
+3690 TIME=0
+3700 REPEAT
+3710 IFINKEY-129<>255THENENDPROC
+3720 UNTILTIME>200
+3730 FORN%=0TO1016STEP8
+3740 WAIT
+3750 RECTANGLEFILL0,N%,1279,1023-N%TO0,N%+8
+3760 IFINKEY-129<>255THENENDPROC
+3770 NEXT
+3780 CLS
+3790 FORN%=1023TO436-64+4STEP-4
+3800 WAIT
+3810 SYS"OS_SpriteOp",256+34,sysspr%,"Title",224,N%,0
+3820 IFINKEY-129<>255THENENDPROC
+3830 NEXT
+3840 PROCdrawtitles
+3850 PRINTTAB(0,29);"       Press any key to start...       ";
+3860 UNTILFALSE
+3870 
+3880 DEFPROCdrawtitles
+3890 SYS"OS_SpriteOp",256+34,sysspr%,"Title",224,436-64,0
+3900 COLOUR7
+3910 PRINTTAB(18,22)"Keys:"
+3920 COLOUR6
+3930 PRINT'"Movement: Z X ' /      Open door: SPACE"
+3940 PRINT"Lightning: RETURN      Fireball: SHIFT"
+3950 PRINT"Arrows: Keypad 8 6 2 4 or 5"
+3960 PRINT"Sword: S     Pickup: CTRL     Heal: H"
+3970 COLOUR8
+3980 PRINTTAB(0,29);"Please wait while the map is created...";
+3990 ENDPROC
+4000 
+4010 DEFPROCkk
+4020 REPEATUNTILINKEY-129=255
+4030 REPEATUNTILINKEY-129<>255
+4040 ENDPROC
+4050 
+4060 DEFPROCass
+4070 brk=0
+4080 FORO%=0TO2STEP2
+4090 P%=mc%
+4100 [OPTO%
+4110 
+4120 .sysspritearea  EQUD    sysspr%
+4130 .sprname        EQUS    "65535!"
+4140                 ALIGN
+4150 
+4160 .buildblocks    STMFD   R13!,{R14}
+4170                 MOV     R7,#0
+4180                 LDR     R6,spriteblock
+4190 .bbloop         MOV     R0,R7
+4200                 ADR     R1,sprname
+4210                 MOV     R2,#6
+4220                 SWI     "XOS_ConvertCardinal2"
+4230                 MOV     R2,R0
+4240                 MOV     R0,#&118
+4250                 LDR     R1,sysspritearea
+4260                 SWI     "XOS_SpriteOp"
+4270                 ADDVS   R6,R6,#64
+4280                 BVS     nosprite
+4290                 LDR     R0,[R2,#32]
+4300                 ADD     R0,R2,R0
+4310                 LDMIA R0!,{R1-R5,R8-R10}:STMIA R6!,{R1-R5,R8-R10}
+4320                 LDMIA R0!,{R1-R5,R8-R10}:STMIA R6!,{R1-R5,R8-R10}
+4330 .nosprite       ADD     R7,R7,#1
+4340                 CMP     R7,#256
+4350                 LDMEQFD R13!,{PC}^
+4360                 B       bbloop
+4370 
+4380 .drawmap        STMFD   R13!,{R14}
+4390                 LDR     R0,screen
+4400                 LDR     R2,map
+4410                 LDR     R4,spriteblock
+4420                 LDR     R5,obj
+4430                 LDR     R1,[R5,#36]
+4440                 SUB     R1,R1,R2
+4450                 MOV     R3,R1,LSR#8 ;y
+4460                 AND     R1,R1,#(1<<8)-1 ;x
+4470                 SUBS    R3,R3,#16
+4480                 MOVLT   R3,#0
+4490                 CMP     R3,#(1<<8)-31
+4500                 MOVGT   R3,#(1<<8)-31
+4510                 SUBS    R1,R1,#16
+4520                 MOVLT   R1,#0
+4530                 CMP     R1,#(1<<8)-32
+4540                 MOVGT   R1,#(1<<8)-32
+4550                 ADD     R1,R1,R2
+4560                 ADD     R1,R1,R3,LSL#8
+4570                 MOV     R3,#32
+4580 .drawmapl1      MOV     R2,#32
+4590 .drawmapl2      LDRB    R14,[R1],#1
+4600                 ADD     R14,R4,R14,LSL#6
+4610                 LDMIA   R14!,{R5-R12}
+4620                 STR     R5,[R0],#160
+4630                 STR     R6,[R0],#160
+4640                 STR     R7,[R0],#160
+4650                 STR     R8,[R0],#160
+4660                 STR     R9,[R0],#160
+4670                 STR     R10,[R0],#160
+4680                 STR     R11,[R0],#160
+4690                 STR     R12,[R0],#-7*160+4
+4700                 SUBS    R2,R2,#1
+4710                 BNE     drawmapl2
+4720                 ADD     R0,R0,#160*8-32*4
+4730                 ADD     R1,R1,#(1<<8)-32
+4740                 SUBS    R3,R3,#1
+4750                 BNE     drawmapl1
+4760                 LDMFD   R13!,{PC}^
+4770 
+4780                 ;R6=objlist,R7=map
+4790 .moveobjects    MOV     R8,#nobj%
+4800 .nextobject     LDR     R9,[R6]
+4810                 ADD     PC,PC,R9,LSL#2
+4820                 EQUD    0
+4830 ]:objjumptable%=P%:[OPTO%
+4840                 B       endobject
+4850 ]:P%=objjumptable%+4*34:[OPTO%
+4860                 B       burningbody
+4870                 B       burningbody
+4880                 B       burningbody
+4890                 B       burningbody
+4900                 B       printbody
+4910                 B       printbody
+4920 ]:P%=objjumptable%+4*50:[OPTO%
+4930                 B       printmybody
+4940 ]:P%=objjumptable%+4*64:[OPTO%
+4950                 B       man
+4960                 B       man
+4970                 B       man
+4980                 B       man
+4990 ]:P%=objjumptable%+4*96:[OPTO%
+5000                 B       nasties
+5010                 B       nasties
+5020                 B       nasties
+5030 ]:P%=objjumptable%+4*128:[OPTO%
+5040                 B       arrow
+5050                 B       arrow
+5060                 B       arrow
+5070                 B       arrow
+5080                 B       fireball
+5090                 EQUD    0
+5100                 EQUD    0
+5110                 EQUD    0
+5120                 B       lightning
+5130                 EQUD    0
+5140                 EQUD    0
+5150                 EQUD    0
+5160                 B       sword
+5170                 B       sword
+5180                 B       sword
+5190                 B       sword
+5200 
+5210 .endobject      ADD     R6,R6,#64
+5220                 SUBS    R8,R8,#1
+5230                 BNE     nextobject
+5240                 MOVS    PC,R14
+5250 
+5260                 ;For objects
+5270                 ;R6=objpointer, R7=map, R8=objnumber, R9=type
+5280                 ;rec R5=mappos
+5290 
+5300 .printbody      LDR     R0,[R6]
+5310                 LDR     R1,[R6,#36]
+5320                 STRB    R0,[R1]
+5330                 MOV     R0,#0
+5340                 STR     R0,[R6]
+5350                 B       endobject
+5360 
+5370 .printmybody    LDR     R0,[R6]
+5380                 LDR     R1,[R6,#36]
+5390                 STRB    R0,[R1]
+5400                 B       endobject
+5410 
+5420 .sword          STMFD   R13!,{R14}
+5430                 LDR     R0,[R6,#44]
+5440                 ADD     R0,R0,#1
+5450                 STR     R0,[R6,#44]
+5460                 CMP     R0,#5
+5470                 MOVEQ   R2,#0
+5480                 LDREQ   R1,[R6,#36]
+5490                 STREQB  R2,[R1]
+5500                 BEQ     swdies
+5510                 CMP     R0,#1
+5520                 LDMNEFD R13!,{R14}
+5530                 BNE     endobject
+5540                 LDR     R10,[R6,#36]
+5550                 LDRB    R0,[R10]
+5560                 CMP     R0,#0
+5570                 MOV     R11,#20
+5580                 MOV     R12,#39
+5590                 BLNE    checkcollision
+5600                 BEQ     swlives
+5610                 CMP     R0,#128
+5620                 BGE     swlives
+5630 .swdies         MOV     R2,#0
+5640                 STR     R2,[R6]
+5650                 LDMFD   R13!,{R14}
+5660                 B       endobject
+5670 .swlives        LDR     R0,[R6]
+5680                 STRB    R0,[R10]
+5690                 LDMFD   R13!,{R14}
+5700                 B       endobject
+5710 
+5720 .arrow          STMFD   R13!,{R14}
+5730                 LDR     R5,[R6,#36]
+5740                 MOV     R2,#0
+5750                 CMP     R5,#0
+5760                 STRNEB  R2,[R5]
+5770                 LDMIB   R6,{R0-R3}
+5780                 ADD     R0,R0,R2
+5790                 ADD     R1,R1,R3
+5800                 ADD     R10,R7,R0
+5810                 ADD     R10,R10,R1,LSL#8
+5820                 STR     R10,[R6,#36]
+5830                 STMIB   R6,{R0-R1}
+5840                 LDRB    R0,[R10]
+5850                 CMP     R0,#0
+5860                 MOV     R11,#15
+5870                 MOV     R12,#38
+5880                 BLNE    checkcollision
+5890                 BEQ     arlives
+5900                 CMP     R0,#128
+5910                 BGE     arlives
+5920                 MOV     R2,#0
+5930                 STR     R2,[R6]
+5940                 LDMFD   R13!,{R14}
+5950                 B       endobject
+5960 .arlives        LDR     R0,[R6]
+5970                 STRB    R0,[R10]
+5980                 STR     R10,[R6,#36]
+5990                 LDMFD   R13!,{R14}
+6000                 B       endobject
+6010 
+6020 .burningbody    LDR     R0,[R6]
+6030                 LDR     R1,[R6,#36]
+6040                 STRB    R0,[R1]
+6050                 LDR     R2,[R6,#40]
+6060                 LDR     R1,[R6,#44]
+6070                 SUBS    R1,R1,#1
+6080                 MOVEQ   R1,R2
+6090                 LDR     R11,[R6,#20]
+6100                 STR     R1,[R6,#44]
+6110                 BNE     endobject
+6120                 ADD     R0,R0,#1
+6130                 CMP     R0,#38
+6140                 MOVEQ   R0,#34
+6150                 STR     R0,[R6]
+6160                 B       endobject
+6170 
+6180 .fireball       STMFD   R13!,{R8,R9,R14}
+6190                 LDR     R0,[R6,#40]
+6200                 SUBS    R0,R0,#1
+6210                 MOVEQ   R0,#2
+6220                 STR     R0,[R6,#40]
+6230                 LDRNE   R10,[R6,#36]
+6240                 BNE     endfb
+6250                 LDR     R5,[R6,#36]
+6260                 MOV     R2,#0
+6270                 CMP     R5,#0
+6280                 STRNEB  R2,[R5]
+6290                 LDR     R2,[R6,#44]
+6300                 SUBS    R2,R2,#1
+6310                 BEQ     fbdies
+6320                 STR     R2,[R6,#44]
+6330                 LDMIB   R6,{R1-R3} ;LDR R1-R3,[R6,#4-12]
+6340                 ADD     R5,R7,R1,LSR#16
+6350                 BIC     R0,R2,#&FF00
+6360                 ADD     R5,R5,R0,LSR#8
+6370                 STR     R5,[R6,#36]
+6380                 MOV     R0,R3
+6390                 STMFD   R13!,{R1,R2}
+6400                 BL      direction
+6410                 LDMFD   R13!,{R3,R4}
+6420                 ADD     R1,R1,R3
+6430                 ADD     R2,R2,R4
+6440                 ADD     R10,R7,R1,LSR#16
+6450                 BIC     R0,R2,#&FF00
+6460                 ADD     R10,R10,R0,LSR#8
+6470                 LDRB    R0,[R10]
+6480                 CMP     R0,#0
+6490                 MOV     R11,#10
+6500                 MOV     R12,#34
+6510                 BLNE    checkcollision
+6520                 BEQ     fblives
+6530                 CMP     R0,#128
+6540                 BGE     fblives
+6550 .fbdies         MOV     R2,#0
+6560                 STR     R2,[R6]
+6570                 LDMFD   R13!,{R8,R9,R14}
+6580                 B       endobject
+6590 .fblives        STMIB   R6,{R1-R2}
+6600 .endfb          MOV     R0,#132
+6610                 STRB    R0,[R10]
+6620                 STR     R10,[R6,#36]
+6630                 LDMFD   R13!,{R8,R9,R14}
+6640                 B       endobject
+6650 
+6660 .findscreen     STMFD   R13!,{R14}
+6670                 ADR     R0,vduvin
+6680                 ADR     R1,screen
+6690                 SWI     "XOS_ReadVduVariables"
+6700                 LDMFD   R13!,{PC}
+6710 
+6720 .vduvin         EQUD    148
+6730                 EQUD    -1
+6740 .screen         EQUD    0
+6750 
+6760 .lightning      STMFD   R13!,{R14}
+6770                 LDR     R5,[R6,#36]
+6780                 MOV     R2,#0
+6790                 CMP     R5,#0
+6800                 STRNEB  R2,[R5]
+6810                 LDR     R2,[R6,#44]
+6820                 SUBS    R2,R2,#1
+6830                 BEQ     lightdies
+6840                 STR     R2,[R6,#44]
+6850                 LDMIB   R6,{R1-R4} ;LDR R1-R4,[R6,#4-16]
+6860                 ADD     R5,R7,R1,LSR#16
+6870                 BIC     R0,R2,#&FF00
+6880                 ADD     R5,R5,R0,LSR#8
+6890                 ADD     R1,R1,R3
+6900                 ADD     R2,R2,R4
+6910                 ADD     R10,R7,R1,LSR#16
+6920                 BIC     R0,R2,#&FF00
+6930                 ADD     R10,R10,R0,LSR#8
+6940                 LDRB    R0,[R10]
+6950                 CMP     R0,#0      ; check for bounce
+6960                 MOV     R11,#5
+6970                 MOV     R12,#34
+6980                 BLNE    checkcollision
+6990                 BEQ     dontlb
+7000                 CMP     R0,#64
+7010                 BLLT    lightbounce
+7020 .dontlb         MOVNE   R10,R5
+7030                 STMIB   R6,{R1-R4}
+7040                 MOV     R0,#136
+7050                 STRB    R0,[R10]
+7060                 STR     R10,[R6,#36]
+7070                 LDMFD   R13!,{R14}
+7080                 B       endobject
+7090 
+7100                 ;R10=pos (on map),R11=health off, pres R1-R10
+7110                 ;R12=dead type
+7120                 ;R0=type (on map)
+7130 .checkcollision STMFD   R13!,{R2-R5,R14}
+7140                 SUB     R2,R0,#64
+7150                 CMP     R2,#127-64
+7160                 LDMHIFD R13!,{R2-R5,PC}^
+7170                 LDR     R3,obj
+7180                 MOV     R2,R3
+7190                 ADD     R5,R3,#nobj%*64
+7200 .ccloop         CMP     R3,R5
+7210                 LDMHIFD R13!,{R2-R5,PC}^
+7220                 LDR     R4,[R3,#36]
+7230                 CMP     R4,R10
+7240                 LDREQ   R4,[R3,#0]
+7250                 CMPEQ   R4,R0
+7260                 ADDNE   R3,R3,#64
+7270                 BNE     ccloop
+7280                 LDR     R4,[R3,#32]
+7290                 CMP     R3,R2
+7300                 BLEQ    hurtme
+7310                 SUBS    R4,R4,R11
+7320                 BMI     kill
+7330                 STR     R4,[R3,#32]
+7340                 LDMFD   R13!,{R2-R5,PC}^
+7350 
+7360 .hurtme         STMFD   R13!,{R0-R4,R14}
+7370                 MOV     R0,#0
+7380                 MOV     R1,R4
+7390                 SUB     R2,R1,R11
+7400                 BL      alterbar
+7410                 ADR     R1,hthit
+7420                 BL      makesound
+7430                 LDMFD   R13!,{R0-R4,PC}^
+7440 
+7450                 EQUD    &2800
+7460 .hthit          EQUS    "HTHit"
+7470                 EQUB    0
+7480 
+7490 .killmoi        STMFD   R13!,{R1,R14}
+7500                 ADR     R1,htmydeath
+7510                 BL      makesound
+7511                 MOV     R12,#50
+7520                 LDMFD   R13!,{R1,PC}^
+7530 
+7540                 EQUD    &1000
+7550 .htmydeath      EQUS    "HTMyDeath"
+7560                 EQUB    0
+7570 
+7580 .kill           CMP     R3,R2
+7590                 BLEQ    killmoi
+7610                 STR     R12,[R3]
+7620                 LDMEQFD R13!,{R2-R5,PC}^ ; me dead!
+7621                 STMFD   R13!,{R1}
+7640                 LDR     R1,nastiesleft
+7650                 SUB     R2,R1,#2
+7660                 STR     R2,nastiesleft
+7670                 MOV     R0,#3
+7680                 BL      alterbar
+7690                 ADR     R1,htnastydea
+7700                 BL      makesound
+7710                 LDMFD   R13!,{R1-R5,PC}^
+7720 
+7730                 EQUD    &2C00
+7740 .htnastydea     EQUS    "HTNastyDea"
+7750                 EQUB    0
+7760                 ALIGN
+7770 
+7780 .nastiesleft    EQUD    100 ;percentage
+7790 
+7800 .map            EQUD    map%
+7810 .spriteblock    EQUD    myspr%
+7820 .obj            EQUD    obj%
+7830 
+7840 .lightbounce    SUB     R1,R1,R3
+7850                 SUB     R2,R2,R4
+7860                 SUB     R0,R10,R5
+7870                 SUBS    R11,R0,#128
+7880                 BPL     lbgt128
+7890                 ADDS    R11,R0,#128
+7900                 BMI     lblt128
+7910 .lbreverselr    RSB     R3,R3,#0
+7920                 MOVS    PC,R14
+7930 .lbgt128        CMP     R11,#128
+7940                 BEQ     lbreverseud
+7950                 BMI     lb255
+7960 .lb257          LDRB    R11,[R10,#-256]
+7970                 LDRB    R12,[R10,#-1]
+7980                 B       lbdiag
+7990 .lb255          LDRB    R11,[R10,#-256]
+8000                 LDRB    R12,[R10,#1]
+8010                 B       lbdiag
+8020 .lbreverseud    RSB     R4,R4,#0
+8030                 MOVS    PC,R14
+8040 .lblt128        CMN     R11,#--128
+8050                 BMI     lbm257
+8060                 BEQ     lbreverseud
+8070 .lbm255         LDRB    R11,[R10,#256]
+8080                 LDRB    R12,[R10,#-1]
+8090                 B       lbdiag
+8100 .lbm257         LDRB    R11,[R10,#256]
+8110                 LDRB    R12,[R10,#1]
+8120                 B       lbdiag
+8130 
+8140 .lbdiag         CMP     R11,#0
+8150                 RSBNE   R3,R3,#0
+8160                 CMP     R12,#0
+8170                 RSBNE   R4,R4,#0
+8180                 CMPEQ   R11,#0
+8190                 RSBEQ   R3,R3,#0
+8200                 RSBEQ   R4,R4,#0
+8210                 MOVS    PC,R14
+8220 
+8230 .lightdies      MOV     R2,#0
+8240                 STR     R2,[R6]
+8250                 LDMFD   R13!,{R14}
+8260                 B       endobject
+8270 
+8280 .man            STMFD   R13!,{R14}
+8290                 LDR     R5,[R6,#36]
+8300                 MOV     R2,#0
+8310                 SUB     R0,R5,R7
+8320                 AND     R0,R0,#&FF
+8330                 TEQ     R0,#240
+8340                 MOVEQ   R2,#8
+8350                 STRB    R2,[R5]
+8360                 MOV     R4,R5 ;new pos
+8370                 MOV     R0,#129 ;move man up
+8380                 LDR     R1,keyup
+8390                 MVN     R2,#NOT-1
+8400                 SWI     "OS_Byte"
+8410                 TEQ     R1,#&FF
+8420                 SUBEQ   R5,R5,#b%
+8430                 MOVEQ   R9,#64
+8440                 MOV     R0,#129 ;move man down
+8450                 LDR     R1,keydown
+8460                 MVN     R2,#NOT-1
+8470                 SWI     "OS_Byte"
+8480                 TEQ     R1,#&FF
+8490                 ADDEQ   R5,R5,#b%
+8500                 MOVEQ   R9,#66
+8510                 BL      testnewpos
+8520                 MOVNE   R5,R4
+8530                 MOVEQ   R4,R5
+8540                 MOV     R0,#129 ;move man left
+8550                 LDR     R1,keyleft
+8560                 MVN     R2,#NOT-1
+8570                 SWI     "OS_Byte"
+8580                 TEQ     R1,#&FF
+8590                 SUBEQ   R5,R5,#1
+8600                 MOVEQ   R9,#67
+8610                 MOV     R0,#129 ;move man right
+8620                 LDR     R1,keyright
+8630                 MVN     R2,#NOT-1
+8640                 SWI     "OS_Byte"
+8650                 TEQ     R1,#&FF
+8660                 ADDEQ   R5,R5,#1
+8670                 MOVEQ   R9,#65
+8680                 BL      testnewpos
+8690                 MOVNE   R5,R4
+8700                 STR     R5,[R6,#36]
+8710                 STR     R9,[R6,#0]
+8720                 STRB    R9,[R5]
+8730                 FNkeyonce(keyopen,keyopenlast,openclose)
+8740                 FNkeyonce(keylightning,keylightlast,makelight)
+8750                 FNkeyonce(keyfb,keyfblast,makefb)
+8760                 FNkeyonce(keyarrowu,keyarrowulast,mkarwu)
+8770                 FNkeyonce(keyarrowd,keyarrowdlast,mkarwd)
+8780                 FNkeyonce(keyarrowl,keyarrowllast,mkarwl)
+8790                 FNkeyonce(keyarrowr,keyarrowrlast,mkarwr)
+8800                 FNkeyonce(keyarrowf,keyarrowflast,mkarwf)
+8810                 FNkeyonce(keypickup,keypickuplast,pickup)
+8820                 FNkeyonce(keysword,keyswordlast,makesword)
+8830                 MOV     R0,#129
+8840                 LDR     R1,keyheal
+8850                 MVN     R2,#NOT-1
+8860                 SWI     "OS_Byte"
+8870                 TEQ     R1,#0
+8880                 BLNE    heal
+8890                 STR     R1,keyheallast
+8900                 LDMFD   R13!,{R14}
+8910                 B       endobject
+8920 .testnewpos     LDRB    R3,[R5]
+8930                 TEQ     R3,#0
+8940                 TEQNE   R3,#8
+8950                 MOV     PC,R14
+8960 
+8970 .keyheallast    EQUD    0
+8980 
+8990 .mkarwu         MOV     R4,#0
+9000                 MVN     R11,#NOT-1
+9010                 MOV     R10,#128
+9020                 B       makearrow
+9030 .mkarwd         MOV     R4,#0
+9040                 MOV     R11,#1
+9050                 MOV     R10,#130
+9060                 B       makearrow
+9070 .mkarwl         MVN     R4,#NOT-1
+9080                 MOV     R11,#0
+9090                 MOV     R10,#131
+9100                 B       makearrow
+9110 .mkarwr         MOV     R4,#1
+9120                 MOV     R11,#0
+9130                 MOV     R10,#129
+9140                 B       makearrow
+9150 .mkarwf         LDR     R4,[R6]
+9160                 SUB     R4,R4,#65
+9170                 ADD     PC,PC,R4,LSL#2
+9180                 B       mkarwu
+9190                 B       mkarwr
+9200                 B       mkarwd
+9210                 B       mkarwl
+9220 
+9230 .makearrow      STMFD   R13!,{R4,R5,R14}
+9240                 BL      findemptyobj
+9250                 CMP     R3,#0
+9260                 LDMEQFD R13!,{R4,R5,PC}^
+9270                 STMFD   R13!,{R1,R3}
+9280                 LDR     R1,[R6,#24]
+9290                 SUBS    R2,R1,#1
+9300                 LDMMIFD R13!,{R1,R3,R4,R5,PC}^
+9310                 STR     R2,[R6,#24]
+9320                 MOV     R0,#2
+9330                 LDR     R3,obj
+9340                 CMP     R3,R6
+9350                 BLEQ    alterbar
+9360                 LDMFD   R13!,{R1,R3}
+9370                 LDR     R0,[R6,#36]
+9380                 SUB     R0,R0,R7
+9390                 AND     R2,R0,#&FF00
+9400                 MOV     R2,R2,LSR#8
+9410                 AND     R0,R0,#&FF
+9420                 STR     R10,[R3,#0]
+9430                 LDMFD   R13!,{R4,R5}
+9440                 STMIB   R3,{R0,R2,R4,R11}
+9450                 MOV     R0,#0
+9460                 STR     R0,[R3,#36]
+9470                 STMFD   R13!,{R0-R3}
+9480                 ADR     R1,htarrow
+9490                 BL      makesound
+9500                 LDMFD   R13!,{R0-R3,PC}^
+9510 
+9520                 EQUD    &2000
+9530 .htarrow        EQUS    "HTArrow"
+9540                 EQUB    0
+9550                 ALIGN
+9560 
+9570 .heal           STMFD   R13!,{R1,R14}
+9580                 LDR     R10,[R6,#28]
+9590                 CMP     R10,#0
+9600                 LDMLEFD R13!,{R1,PC}^
+9610                 LDR     R11,[R6,#32]
+9620                 CMP     R11,#100
+9630                 LDMGEFD R13!,{R1,PC}^
+9640                 MOV     R0,#1
+9650                 MOV     R1,R10
+9660                 SUB     R2,R1,#1
+9670                 STR     R2,[R6,#28]
+9680                 BL      alterbar
+9690                 MOV     R0,#0
+9700                 MOV     R1,R11
+9710                 ADD     R2,R1,#1
+9720                 STR     R2,[R6,#32]
+9730                 BL      alterbar
+9740                 LDR     R1,keyheallast
+9750                 TEQ     R1,#0
+9760                 ADREQ   R1,htheal
+9770                 BLEQ    makesound
+9780                 LDMFD   R13!,{R1,PC}^
+9790 
+9800                 EQUD    &1800
+9810 .htheal         EQUS    "HTHeal"
+9820                 EQUB    0
+9830                 ALIGN
+9840 
+9850 .makefb         STMFD   R13!,{R1,R5,R8,R9,R14} ;pres R1,R6-R9
+9860                 BL      findnearest
+9870                 CMP     R0,#0
+9880                 BLNE    makefba
+9890                 LDMFD   R13!,{R1,R5,R8,R9,PC}^
+9900 
+9910 .makefba        STMFD   R13!,{R14}
+9920                 BL      findemptyobj
+9930                 CMP     R3,#0
+9940                 LDMEQFD R13!,{PC}^
+9950                 STMFD   R13!,{R0,R3}
+9960                 LDR     R1,[R6,#28]
+9970                 SUBS    R2,R1,#10
+9980                 LDMMIFD R13!,{R0,R3,PC}^
+9990                 STR     R2,[R6,#28]
+10000                 MOV     R0,#1
+10010                 LDR     R3,obj
+10020                 CMP     R3,R6
+10030                 BLEQ    alterbar
+10040                 LDMFD   R13!,{R0,R3}
+10050                 LDR     R4,[R6,#36]
+10060                 SUB     R4,R4,R7
+10070                 AND     R5,R4,#&FF00
+10080                 MOV     R5,R5,LSL#8
+10090                 AND     R4,R4,#&FF
+10100                 MOV     R4,R4,LSL#16
+10110                 ADD     R4,R4,#&8000
+10120                 ADD     R5,R5,#&8000
+10130                 STR     R4,[R3,#4]
+10140                 STR     R5,[R3,#8]
+10150                 STR     R0,[R3,#12]
+10160                 MOV     R1,#132
+10170                 STR     R1,[R3,#0]
+10180                 MOV     R1,#128
+10190                 STR     R1,[R3,#44]
+10200                 MOV     R1,#1
+10210                 STR     R1,[R3,#40]
+10220                 MOV     R1,#0
+10230                 STR     R1,[R3,#36]
+10240                 ADR     R1,htfireball
+10250                 BL      makesound
+10260                 LDMFD   R13!,{PC}^
+10270 
+10280                 EQUD    &2600
+10290 .htfireball     EQUS    "HTFireBall"
+10300                 EQUB    0
+10310                 ALIGN
+10320 
+10330 .makelight      STMFD   R13!,{R1,R5,R8,R9,R14} ;pres R1,R6-R9
+10340                 BL      findnearest
+10350                 CMP     R0,#0
+10360                 BLNE    makelighta
+10370                 LDMFD   R13!,{R1,R5,R8,R9,PC}^
+10380 
+10390 .makelighta     STMFD   R13!,{R14}
+10400                 BL      findemptyobj
+10410                 CMP     R3,#0
+10420                 LDMEQFD R13!,{PC}^
+10430                 STMFD   R13!,{R1-R3}
+10440                 LDR     R1,[R6,#28]
+10450                 SUBS    R2,R1,#2
+10460                 LDMMIFD R13!,{R1-R3,PC}^
+10470                 STR     R2,[R6,#28]
+10480                 MOV     R0,#1
+10490                 LDR     R3,obj
+10500                 CMP     R3,R6
+10510                 BLEQ    alterbar
+10520                 LDMFD   R13!,{R1-R3}
+10530                 LDR     R4,[R6,#36]
+10540                 SUB     R4,R4,R7
+10550                 AND     R5,R4,#&FF00
+10560                 MOV     R5,R5,LSL#8
+10570                 AND     R4,R4,#&FF
+10580                 MOV     R4,R4,LSL#16
+10590                 ADD     R4,R4,#&8000
+10600                 ADD     R5,R5,#&8000
+10610                 STR     R4,[R3,#4]
+10620                 STR     R5,[R3,#8]
+10630                 STR     R1,[R3,#12]
+10640                 STR     R2,[R3,#16]
+10650                 MOV     R1,#136
+10660                 STR     R1,[R3,#0]
+10670                 MOV     R1,#255
+10680                 STR     R1,[R3,#44]
+10690                 MOV     R1,#0
+10700                 STR     R1,[R3,#36]
+10710                 ADR     R1,htlightnin
+10720                 BL      makesound
+10730                 LDMFD   R13!,{PC}^
+10740 
+10750                 EQUD    &2000
+10760 .htlightnin     EQUS    "HTLightnin"
+10770                 EQUB    0
+10780                 ALIGN
+10790 
+10800 .findemptyobj   STMFD   R13!,{R14} ; in R3 ( or =0)
+10810                 MOV     R4,#nobj%
+10820                 LDR     R3,objectlist
+10830 .feoloop        LDR     R5,[R3]
+10840                 CMP     R5,#0
+10850                 LDMEQFD R13!,{PC}^
+10860                 ADD     R3,R3,#64
+10870                 SUBS    R4,R4,#1
+10880                 BNE     feoloop
+10890                 MOV     R3,#0
+10900                 LDMFD   R13!,{PC}^
+10910 
+10920 .objectlist     EQUD    obj%
+10930 
+10940 .findnearest    STMFD   R13!,{R14}  ;find nearest nastie
+10950                 MOV     R4,#nobj%
+10960                 MVN     R5,#NOT-1
+10970                 MOV     R0,R6
+10980 .fnloop         SUBS    R4,R4,#1
+10990                 BEQ     fnend
+11000                 ADD     R0,R0,#64
+11010                 LDR     R8,[R0]
+11020                 BIC     R8,R8,#&1F
+11030                 CMP     R8,#&60
+11040                 BNE     fnloop
+11050                 BL      caniseeyou
+11060                 CMP     R3,R5
+11070                 BHS     fnloop
+11080                 MOV     R5,R3
+11090                 ADR     R14,nearobjpos
+11100                 STMIA   R14,{R0,R1,R2}
+11110                 B       fnloop
+11120 .fnend          CMN     R5,#--1
+11130                 MOVEQ   R0,#0
+11140                 ADRNE   R14,nearobjpos
+11150                 LDMNEIA R14,{R0,R1,R2}
+11160                 LDMFD   R13!,{PC}^
+11170 
+11180 .nearobjpos     EQUD    0
+11190 .neardx         EQUD    0
+11200 .neardy         EQUD    0
+11210 
+11220 .openclose      STMFD   R13!,{R14} ;pres R1,R6-R9 (using R11,R12)
+11230                 SUB     R0,R5,R7
+11240                 AND     R2,R0,#7 ;Cx
+11250                 AND     R3,R0,#7<<8 ;Cy<<8
+11260                 BIC     R0,R0,#7
+11270                 BIC     R0,R0,#7<<8
+11280                 ADD     R0,R0,R7
+11290                 CMP     R2,#1
+11300                 BEQ     ocvert
+11310                 CMP     R2,#7
+11320                 ADDEQ   R0,R0,#8
+11330                 BEQ     ocvert
+11340                 CMP     R3,#1<<8
+11350                 BEQ     ochoriz
+11360                 CMP     R3,#7<<8
+11370                 ADDEQ   R0,R0,#8<<8
+11380                 BEQ     ochoriz
+11390                 LDMFD   R13!,{PC}^
+11400 
+11410 .ocvert         SUB     R3,R3,#2<<8
+11420                 CMP     R3,#4<<8
+11430                 LDMHIFD R13!,{PC}^
+11440                 LDRB    R2,[R0,#256]!
+11450                 CMP     R2,#28
+11460                 LDMNEFD R13!,{PC}^
+11470                 MOV     R2,#256
+11480                 MOV     R11,#33
+11490                 B       ocdoit
+11500 
+11510 .ochoriz        SUB     R2,R2,#2
+11520                 CMP     R2,#4
+11530                 LDMHIFD R13!,{PC}^
+11540                 LDRB    R2,[R0,#1]!
+11550                 CMP     R2,#29
+11560                 LDMNEFD R13!,{PC}^
+11570                 MOV     R2,#1
+11580                 MOV     R11,#32
+11590 
+11600 .ocdoit         LDRB    R12,[R0,R2]!
+11610                 STMFD   R13!,{R0-R3}
+11620                 ADR     R1,htdoor
+11630                 BL      makesound
+11640                 LDMFD   R13!,{R0-R3}
+11650                 MOV     R4,R0
+11660                 CMP     R12,#0
+11670                 BEQ     ocdoitclose
+11680                 CMP     R12,R11
+11690                 BEQ     ocdoitopen
+11700                 LDMFD   R13!,{PC}^
+11710 
+11720                 EQUD    &1800
+11730 .htdoor         EQUS    "HTDoor"
+11740                 EQUB    0
+11750                 ALIGN
+11760 
+11770 .ocdoitclose    MOV     R3,#5
+11780 .ocdoitl1       LDRB    R12,[R0],R2
+11790                 CMP     R12,#0
+11800                 LDMNEFD R13!,{PC}^
+11810                 SUBS    R3,R3,#1
+11820                 BNE     ocdoitl1
+11830                 MOV     R3,#5
+11840 .ocdoitl2       STRB    R11,[R4],R2
+11850                 SUBS    R3,R3,#1
+11860                 BNE     ocdoitl2
+11870                 LDMFD   R13!,{PC}^
+11880 
+11890 .ocdoitopen     MOV     R3,#5
+11900 .ocdoitl3       LDRB    R12,[R0],R2
+11910                 CMP     R12,R11
+11920                 LDMNEFD R13!,{PC}^
+11930                 SUBS    R3,R3,#1
+11940                 BNE     ocdoitl3
+11950                 MOV     R3,#5
+11960                 MOV     R11,#0
+11970 .ocdoitl4       STRB    R11,[R4],R2
+11980                 SUBS    R3,R3,#1
+11990                 BNE     ocdoitl4
+12000                 LDMFD   R13!,{PC}^
+12010 
+12020 .nasties        STMFD   R13!,{R14}
+12030                 LDR     R5,[R6,#36]
+12040                 MOV     R2,#0
+12050                 STRB    R2,[R5] ;R5=mappos
+12060                 LDR     R0,[R6,#40]
+12070                 LDR     R1,[R6,#44]
+12080                 SUBS    R1,R1,#1
+12090                 MOVEQ   R1,R0
+12100                 LDR     R11,[R6,#20]
+12110                 STR     R1,[R6,#44]
+12120                 BNE     endofmovenast
+12130                 ADD     PC,PC,R11,LSL#2
+12140                 EQUD    0 ;R5=mappos,R6=obj,R9
+12150                 B       nmrndwalk
+12160                 B       chugg
+12170                 B       ahugg
+12180 
+12190 .chugg          MOV     R4,#1
+12200                 B       caskip
+12210 
+12220 .ahugg          MVN     R4,#NOT-1
+12230 
+12240 .caskip         ADR     R0,eightdirs
+12250                 LDR     R1,[R6,#12] ;dir
+12260                 ADD     R2,R1,R4,LSL#1
+12270                 LDR     R3,[R0,R2,LSL#2]
+12280                 LDRB    R3,[R5,R3]
+12290                 CMP     R3,#0
+12300                 BNE     caskip2
+12310                 ADD     R2,R2,R4
+12320                 LDR     R3,[R0,R2,LSL#2]
+12330                 LDRB    R3,[R5,R3]
+12340                 CMP     R3,#0
+12350                 BEQ     caskip2
+12360                 ADD     R1,R1,R4,LSL#1
+12370                 B       caskip3
+12380 .caskip2        LDR     R3,[R0,R1,LSL#2]
+12390                 LDRB    R3,[R5,R3]
+12400                 CMP     R3,#0
+12410                 SUBNE   R1,R1,R4,LSL#1
+12420 .caskip3        AND     R1,R1,#7
+12430                 STR     R1,[R6,#12]
+12440                 LDR     R1,[R0,R1,LSL#2]
+12450                 LDRB    R2,[R5,R1]
+12460                 CMP     R2,#0
+12470                 ADDEQ   R5,R5,R1
+12480 
+12490 .decidefire     STR     R5,[R6,#36]
+12500                 MOV     R1,#4
+12510                 FNrnd(  0,1,2)
+12520                 AND     R0,R0,#15
+12530                 CMP     R0,#8
+12540                 ADDLT   PC,PC,R0,LSL#2
+12550                 B       ntestarrow
+12560                 B       nfireball
+12570                 B       nlightning
+12580                 B       nlightning
+12590                 B       nlightning
+12600                 B       endofmovenast
+12610                 B       endofmovenast
+12620                 B       endofmovenast
+12630                 B       endofmovenast
+12640 
+12650 .nlightning     STMFD   R13!,{R5,R8,R9}
+12660                 LDR     R0,obj
+12670                 BL      caniseeyou
+12680                 CMN     R3,#--1
+12690                 BLNE    makelighta
+12700                 LDMFD   R13!,{R5,R8,R9}
+12710                 B       endofmovenast
+12720 
+12730 .nfireball      STMFD   R13!,{R5,R8,R9}
+12740                 LDR     R0,obj
+12750                 BL      caniseeyou
+12760                 CMN     R3,#--1
+12770                 BLNE    makefba
+12780                 LDMFD   R13!,{R5,R8,R9}
+12790                 B       endofmovenast
+12800 
+12810 .obj2           EQUD    obj%
+12820 
+12830 .ntestarrow     STMFD   R13!,{R5,R8,R9}
+12840                 SUB     R2,R5,R7
+12850                 AND     R1,R2,#255
+12860                 MOV     R2,R2,LSR#8
+12870                 LDR     R0,obj2
+12880                 LDR     R3,[R0,#36]
+12890                 SUB     R4,R3,R7
+12900                 AND     R3,R4,#255
+12910                 MOV     R4,R4,LSR#8
+12920                 CMP     R2,R4
+12930                 BEQ     ntahorz
+12940                 CMP     R1,R3
+12950                 BEQ     ntavert
+12960 .endnarrow      LDMFD   R13!,{R5,R8,R9}
+12970                 B       endofmovenast
+12980 .ntahorz        BL      caniseeyou
+12990                 CMN     R3,#--1
+13000                 BEQ     endnarrow
+13010                 CMP     R1,#0
+13020                 BLLT    mkarwl
+13030                 BLGT    mkarwr
+13040                 B       endnarrow
+13050 .ntavert        BL      caniseeyou
+13060                 CMN     R3,#--1
+13070                 BEQ     endnarrow
+13080                 CMP     R2,#0
+13090                 BLLT    mkarwu
+13100                 BLGT    mkarwd
+13110                 B       endnarrow
+13120 
+13130 .endofmovenast  STRB    R9,[R5]
+13140                 LDMFD   R13!,{R14}
+13150                 B       endobject
+13160 
+13170 .nmrndwalk      LDR     R2,[R6,#12]
+13180                 ADD     R3,R5,R2
+13190                 LDRB    R2,[R3]
+13200                 MOV     R1,#5
+13210                 FNrnd(  4,1,0)
+13220                 TST     R4,#%11111
+13230                 BEQ     nastchangedir
+13240                 TEQ     R2,#0
+13250                 MOVEQ   R5,R3
+13260                 BEQ     decidefire
+13270 .nastchangedir  MOV     R3,#3
+13280                 FNrnd(  2,3,4)
+13290                 AND     R2,R2,#7
+13300                 ADR     R3,eightdirs
+13310                 LDR     R2,[R3,R2,LSL#2]
+13320                 STR     R2,[R6,#12]
+13330                 B       decidefire
+13340 
+13350 .makesword      STMFD   R13!,{R5,R14}
+13360                 BL      findemptyobj
+13370                 LDMFD   R13!,{R5}
+13380                 CMP     R3,#0
+13390                 LDMEQFD R13!,{R14}
+13400                 LDR     R2,obj
+13410                 LDR     R0,[R2]
+13420                 ADR     R10,eightdirs-(64<<3)
+13430                 LDR     R10,[R10,R0,LSL#3]
+13440                 ADD     R10,R5,R10
+13450                 ADD     R0,R0,#140-64
+13460                 STR     R10,[R3,#36]
+13470                 STR     R0,[R3]
+13480                 MOV     R0,#0
+13490                 STR     R0,[R3,#44]
+13500                 STMFD   R13!,{R1}
+13510                 ADR     R1,htsword
+13520                 BL      makesound
+13530                 LDMFD   R13!,{R1,PC}^
+13540 
+13550                 EQUD    &2000
+13560 .htsword        EQUS    "HTSword"
+13570                 EQUB    0
+13580                 ALIGN
+13590 
+13600 .pickup         LDR     R0,[R6]
+13610                 ADR     R11,eightdirs-(64<<3)
+13620                 LDR     R11,[R11,R0,LSL#3]
+13630                 ADD     R11,R5,R11
+13640                 LDRB    R0,[R11]
+13650                 SUB     R0,R0,#40
+13660                 CMP     R0,#45-40
+13670                 ADDLS   PC,PC,R0,LSL#2
+13680                 MOVS    PC,R14
+13690                 B       milk
+13700                 B       milk
+13710                 B       milk
+13720                 B       milk
+13730                 B       milk
+13740                 B       milk
+13750 
+13760 .milk           STMFD   R13!,{R1,R14}
+13770                 LDR     R1,[R6,#28]
+13780                 ADD     R2,R1,R0,LSL#3
+13790                 ADD     R2,R2,#1<<3
+13800                 CMP     R2,#100
+13810                 LDMGTFD R13!,{R1,PC}^
+13820                 STR     R2,[R6,#28]
+13830                 MOV     R0,#1
+13840                 BL      alterbar
+13850                 MOV     R0,#0
+13860                 STRB    R0,[R11]
+13870                 ADR     R1,htpickup
+13880                 BL      makesound
+13890                 LDMFD   R13!,{R1,PC}^
+13900 
+13910                 EQUD    &2000
+13920 .htpickup       EQUS    "HTPickUp"
+13930                 EQUB    0
+13940                 ALIGN
+13950 
+13960 .keyleft        EQUD    -98
+13970 .keyright       EQUD    -67
+13980 .keyup          EQUD    -80
+13990 .keydown        EQUD    -105
+14000 .keyopen        EQUD    -99
+14010 .keyopenlast    EQUD    0
+14020 .keylightning   EQUD    -74
+14030 .keylightlast   EQUD    0
+14040 .keyfb          EQUD    -1
+14050 .keyfblast      EQUD    0
+14060 .keyheal        EQUD    -85
+14070 .keyarrowu      EQUD    -43
+14080 .keyarrowulast  EQUD    0
+14090 .keyarrowd      EQUD    -125
+14100 .keyarrowdlast  EQUD    0
+14110 .keyarrowl      EQUD    -123
+14120 .keyarrowllast  EQUD    0
+14130 .keyarrowr      EQUD    -27
+14140 .keyarrowrlast  EQUD    0
+14150 .keyarrowf      EQUD    -124
+14160 .keyarrowflast  EQUD    0
+14170 .keypickup      EQUD    -2
+14180 .keypickuplast  EQUD    0
+14190 .keysword       EQUD    -82
+14200 .keyswordlast   EQUD    0
+14210 
+14220 .rndseed        EQUD    &568475
+14230 .rndeor         EQUD    &1D872B41
+14240 
+14250                 EQUD    -b%+1
+14260                 EQUD    1
+14270                 EQUD    b%+1
+14280                 EQUD    b%
+14290                 EQUD    b%-1
+14300                 EQUD    -1
+14310                 EQUD    -b%-1
+14320 
+14330 .eightdirs      EQUD    -b%    ;clockwise
+14340                 EQUD    -b%+1
+14350                 EQUD    1
+14360                 EQUD    b%+1
+14370                 EQUD    b%
+14380                 EQUD    b%-1
+14390                 EQUD    -1
+14400                 EQUD    -b%-1
+14410 
+14420                 EQUD    -b%
+14430                 EQUD    -b%+1
+14440                 EQUD    1
+14450                 EQUD    b%+1
+14460                 EQUD    b%
+14470                 EQUD    b%-1
+14480                 EQUD    -1
+14490 
+14500           ;DECREASE bar R0 from R1 to R2
+14510 
+14520 .alterbar       CMP     R2,#0
+14530                 MOVLT   R2,#0
+14540                 CMP     R1,R2
+14550                 MOVEQS  PC,R14
+14560                 LDR     R3,screen
+14570                 ADD     R3,R3,#132
+14580                 ADD     R3,R3,R0,LSL#3
+14590                 RSB     R1,R1,#159
+14600                 ADD     R4,R3,R1,LSL#7
+14610                 ADD     R4,R4,R1,LSL#5 ;R4=from addr
+14620                 RSB     R2,R2,#159
+14630                 ADD     R3,R3,R2,LSL#7
+14640                 ADD     R3,R3,R2,LSL#5 ;R3=to addr
+14650                 CMP     R3,R4
+14660                 MOVGT   R2,R4
+14670                 MOVGT   R4,R3
+14680                 MOVGT   R3,R2
+14690                 MOVGT   R2,#&60000000
+14700                 LDRLE   R2,yellowcolour
+14710 .abloop         STR     R2,[R3],#160
+14720                 CMP     R3,R4
+14730                 BNE     abloop
+14740                 MOVS    PC,R14
+14750 
+14760 .yellowcolour   EQUD    &66666666
+14770 
+14780     ;corr R8,R9,R10,R11,R12. As direction, but R3=-1 if not seen
+14790 .caniseeyou     STMFD   R13!,{R14}
+14800                 LDR     R8,[R0]
+14810                 TEQ     R8,#50
+14820                 MVNEQ   R3,#NOT-1
+14830                 LDMEQFD R13!,{PC}^
+14840                 BL      direction
+14850                 MOV     R12,#255<<16
+14860                 LDR     R8,[R6,#36]
+14870                 SUB     R8,R8,R7
+14880                 AND     R9,R12,R8,LSL#8   ;R9=sy
+14890                 AND     R8,R12,R8,LSL#16  ;R8=sx
+14900                 ADD     R8,R8,#&8000
+14910                 ADD     R9,R9,#&8000
+14920                 STMFD   R13!,{R3}
+14930 .cisyloop       SUBS    R3,R3,#1
+14940                 LDMEQFD R13!,{R3,PC}^
+14950                 ADD     R8,R8,R1
+14960                 ADD     R9,R9,R2
+14970                 ADD     R10,R7,R8,LSR#16
+14980                 BIC     R11,R9,#&FF<<8
+14990                 ADD     R10,R10,R11,LSR#8
+15000                 LDRB    R11,[R10]
+15010                 CMP     R11,#0
+15020                 BEQ     cisyloop
+15030                 CMP     R11,#64
+15040                 BGE     cisyloop
+15050                 MVN     R3,#NOT-1
+15060                 LDMFD   R13!,{R14,PC}^
+15070 
+15080              ;pres!!! R6=objpointer, R7=map ,(R8,R9)
+15090              ;R0=nastie/man's address (target bloke)
+15100              ;corr R8,R9,R10,R11,R12
+15110              ;RETURN  R1=dx R2=dy R3=dist
+15120 .direction      STMFD   R13!,{R14}
+15130                 MOV     R12,#255
+15140                 LDR     R8,[R6,#36]
+15150                 SUB     R8,R8,R7
+15160                 AND     R9,R12,R8,LSR#8   ;R9=sy
+15170                 AND     R8,R8,R12         ;R8=sx
+15180                 LDR     R10,[R0,#36]
+15190                 SUB     R10,R10,R7
+15200                 AND     R11,R12,R10,LSR#8 ;R11=ty
+15210                 AND     R10,R10,R12       ;R10=tx
+15220                 SUB     R1,R10,R8         ;R1=gx
+15230                 SUB     R2,R11,R9         ;R2=gy
+15240                 CMP     R1,R2
+15250                 BGT     cq2345
+15260                 CMN     R1,R2
+15270                 BGT     cq81
+15280                 CMP     R2,#0
+15290                 BGT     cq7
+15300 .cq6            MOV     R2,R2,LSL#16
+15310                 RSB     R2,R2,#0
+15320                 RSB     R1,R1,#0
+15330                 FNdiv(  2,1,3,10,11)
+15340                 RSB     R2,R3,#0
+15350                 MOV     R3,R1
+15360                 MOV     R1,#&10000:RSB R1,R1,#0
+15370                 B       cqend
+15380 .cq81           CMP     R1,#0
+15390                 BGT     cq1
+15400 .cq8            MOV     R1,R1,LSL#16
+15410                 RSB     R1,R1,#0
+15420                 FNdiv(  1,2,3,10,11)
+15430                 RSB     R1,R3,#0
+15440                 MOV     R3,R2
+15450                 MOV     R2,#&10000
+15460                 B       cqend
+15470 .cq1            MOV     R1,R1,LSL#16
+15480                 FNdiv(  1,2,3,10,11)
+15490                 MOV     R1,R3
+15500                 MOV     R3,R2
+15510                 MOV     R2,#&10000
+15520                 B       cqend
+15530 .cq7            MOV     R2,R2,LSL#16
+15540                 RSB     R1,R1,#0
+15550                 FNdiv(  2,1,3,10,11)
+15560                 MOV     R2,R3
+15570                 MOV     R3,R1
+15580                 MOV     R1,#&10000:RSB R1,R1,#0
+15590                 B       cqend
+15600 .cq2345         CMN     R1,R2
+15610                 BGT     cq23
+15620                 CMP     R1,#0
+15630                 BGT     cq4
+15640 .cq5            MOV     R1,R1,LSL#16
+15650                 RSB     R2,R2,#0
+15660                 RSB     R1,R1,#0
+15670                 FNdiv(  1,2,3,10,11)
+15680                 RSB     R1,R3,#0
+15690                 MOV     R3,R2
+15700                 MOV     R2,#&10000:RSB R2,R2,#0
+15710                 B       cqend
+15720 .cq23           CMP     R2,#0
+15730                 BGT     cq2
+15740 .cq3            MOV     R2,R2,LSL#16
+15750                 RSB     R2,R2,#0
+15760                 FNdiv(  2,1,3,10,11)
+15770                 RSB     R2,R3,#0
+15780                 MOV     R3,R1
+15790                 MOV     R1,#&10000
+15800                 B       cqend
+15810 .cq4            MOV     R1,R1,LSL#16
+15820                 RSB     R2,R2,#0
+15830                 FNdiv(  1,2,3,10,11)
+15840                 MOV     R1,R3
+15850                 MOV     R3,R2
+15860                 MOV     R2,#&10000:RSB R2,R2,#0
+15870                 B       cqend
+15880 .cq2            MOV     R2,R2,LSL#16
+15890                 FNdiv(  2,1,3,10,11)
+15900                 MOV     R2,R3
+15910                 MOV     R3,R1
+15920                 MOV     R1,#&10000
+15930                 B       cqend
+15940 .cqend          LDMFD   R13!,{PC}^
+15950 
+15960 .voice          EQUD    1
+15970 
+15980 .makesound      STMFD   R13!,{R0,R2-R3,R14}
+15990                 LDR     R0,voice
+16000                 SWI     "Sound_AttachNamedVoice"
+16010                 LDR     R2,[R1,#-4]
+16020                 LDR     R1,ampl
+16030                 MOV     R3,#&FF
+16040                 SWI     "Sound_Control"
+16050                 ADD     R0,R0,#1
+16060                 CMP     R0,#vs%
+16070                 MOVGT   R0,#1
+16080                 STR     R0,voice
+16090                 LDMFD   R13!,{R0,R2-R3,PC}^
+16100 
+16110 .ampl           EQUD    &FFF1
+16120 
+16130 ]:NEXT
+16140 IFbrk<>0THENOSCLI"Breakset "+STR$~brk
+16150 ENDPROC
+16160 
+16170 DEFFNkeyonce(keyloc,keylast,goto)
+16180 [OPTO%
+16190  ;goto must pres R1
+16200                 MOV     R0,#129
+16210                 LDR     R1,keyloc
+16220                 MVN     R2,#NOT-1
+16230                 SWI     "OS_Byte"
+16240                 LDR     R3,keylast
+16250                 TEQ     R3,R1
+16260                 TEQNE   R1,#0
+16270                 BLNE    goto
+16280                 STR     R1,keylast
+16290 ]:=0
+16300 
+16310 DEFFNrnd(ans,loopt,scr)
+16320 [OPTO%
+16330               LDR     ans,rndseed
+16340               LDR     scr,rndeor
+16350 .rndloop      MOVS    ans,ans,LSL#1
+16360               EORCS   ans,ans,scr
+16370               SUBS    loopt,loopt,#1
+16380               BNE     rndloop
+16390               STR     ans,rndseed
+16400 ]:=0
+16410 
+16420 DEFFNdiv(numerator,denominator,answer,remainder,scrap)
+16430 [OPTO%
+16440               MOV     scrap,#32
+16450               MOV     remainder,#0
+16460 .divloop      MOV     answer,answer,LSL#1
+16470               MOV     remainder,remainder,LSL#1
+16480               MOVS    numerator,numerator,LSL#1
+16490               ORRCS   remainder,remainder,#1
+16500               CMP     remainder,denominator
+16510               SUBCS   remainder,remainder,denominator
+16520               ORRCS   answer,answer,#1
+16530               SUBS    scrap,scrap,#1
+16540               BNE     divloop
+16550 ]:=0
+16560 
+16570 DEFPROCerror
+16580 PROCtrackerstop
+16590 IFERR=17THEN
+16600  MODE9
+16610  *Run <Obey$Dir>.KillMods
+16620  PRINT"Thankyou for playing!"
+16630 ELSE
+16640  ERRORERR,REPORT$+" at line "+STR$ERL
+16650 ENDIF
+16660 END
+16670 
+16680 DEFPROCtrackerstop
+16690 *QTMStop
+16700 SYS"Sound_Configure",vs%,208,48,0,0
+16710 *Tuning 0
+16720 FORn%=1TOvs%:SYS"Sound_Control",n%,0,&1000,1:NEXT
+16730 ENDPROC
