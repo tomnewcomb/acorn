@@ -31,3 +31,7 @@
 .module-line-number{display:inline-block;width:3ch;margin-right:1ch;text-align:right;color:var(--muted);user-select:none}
 
 .emulator-section{border-top:1px solid var(--line);margin-top:40px;padding-top:30px;max-width:1000px}.emulator-section p,.emulator-section li{font-size:14px;line-height:1.9;color:var(--muted)}.emulator-section .actions{margin:25px 0}.emulator-section ol{padding-left:22px;margin:25px 0}.emulator-section details{padding:18px 0;border-top:1px solid var(--line)}.emulator-section summary{cursor:pointer;font-size:14px;color:var(--ink)}
+
+/* Original software is a primary way to explore each available program. */
+.exhibit-actions{display:flex;flex-direction:column;gap:.75rem;align-items:stretch;min-width:240px}.exhibit-actions .micro{max-width:280px;line-height:1.6}.card-run{margin:1.5rem 0;align-items:center}.run-original{display:grid;grid-template-columns:1fr 1fr;gap:2rem;border:1px solid var(--green);padding:2rem;margin:0 0 2.5rem;background:rgba(174,213,122,.04)}.run-original h2{margin-top:.75rem}.run-original h3{margin-top:0}.run-original ol{padding-left:1.4rem;line-height:1.8}.run-original details{line-height:1.7}.run-original .actions{flex-wrap:wrap}.run-original p{line-height:1.7}
+@media(max-width:760px){.run-original{grid-template-columns:1fr;padding:1.25rem;gap:1.5rem}.exhibit-actions{width:100%;min-width:0}.card-run{flex-wrap:wrap}}

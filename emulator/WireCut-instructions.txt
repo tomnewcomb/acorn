@@ -6,7 +6,7 @@ unchanged. It contains the tokenised BASIC program, PrinterPort module,
 shapes, audio, saved settings, icon, launcher and original help file.
 
 Emulator:
-https://archi.medes.live/#preset=a3000
+https://archi.medes.live/#preset=a3000&disc=https%3A%2F%2Ftomnewcomb.github.io%2Facorn%2Femulator%2FWireCut-original.zip
 
 1. Download the ZIP from The Acorn Archive. Keep it zipped.
 2. Open the emulator link above (A3000 with RISC OS 3).
@@ -30,8 +30,8 @@ https://github.com/pdjstone/archimedes-live#mousekeyboard-shortcuts
 Direct loading from a link:
 The emulator supports preset, disc and autoboot URL-fragment options.
 The disc URL must be fetchable without this site's sign-in, and cross-
-origin hosting must permit CORS. Use the download-and-upload workflow until direct URL loading has been
-verified on the public host.
+origin hosting must permit CORS. The link above loads the ZIP directly from the public archive website.
+Manual download and upload remains available as a fallback.
 No passwords or access tokens should be placed in the emulator link.
 
 Menubu:
