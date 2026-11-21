@@ -1,0 +1,1274 @@
+   10REM>!RunImage
+   11
+   12REM Wire Cutter by Thomas Newcomb 1994.
+   20
+   30REM Change the following variables to change the speed at which
+   40REM the wire move during reset to origin and cutting. A value of
+   50REM zero is fast, higher values are slower. Note that the reset
+   60REM speed and cutting speed are on different scales, ie. a value
+   70REM of 50 for reseting and cutting would not mean they work at
+   80REM the same speed.
+   90
+  100resetspeed%=1000
+  110cuttingspeed%=7
+  111
+  112REM Do not alter below here...
+  120
+  130MODE12
+  140ONERRORIFERR=17THENPROCleaving ELSEREPORT:END
+  150*FX11 0
+  160SYS"OS_RemoveCursors"
+  170*FX4 1
+  180*Pointer
+  190COLOUR15,0,0,0
+  200COLOUR13,192,192,0
+  210COLOUR12,192,192,192
+  220COLOUR11,128,128,128
+  230COLOUR10,255,0,0
+  240
+  250maxnodes%=5000
+  260zoom%=1
+  270xgraph=0
+  280ygraph=0
+  290grid%=50
+  300snap%=TRUE
+  310showgrid%=TRUE
+  320editpoint%=0
+  330nodes%=1
+  340catologueno%=0
+  350catologuepage%=1
+  360selectedcat$=""
+  370sx%=-1
+  380sy%=-1
+  390cuttemp%=90
+  400normtemp%=0
+  410disabled%=%0000
+  420stx=-2
+  430sty=-2
+  440stpmm=32.072727777:REM steps per mm
+  450OH$=""
+  460undosize%=2000
+  470speach%=TRUE
+  480spmm=1.114:REM seconds per mm
+  490disc%=0
+  500discs%=4
+  510
+  520DIMnodes(maxnodes%,1),buf%256,cat$(3,3),undo(undosize%,4),undo$(undosize%),sa%216100,discs$(discs%-1,1)
+  530
+  540discs$()="Hard disc","<WireCut$Dir>.Shapes","Floppy :0","ADFS::0","Floppy :1","ADFS::1","Ram disc","RAM::0"
+  550
+  560PROCstartup
+  570PROCloadsetup
+  580PROCdrawmenus
+  590PROCclearundobuffer
+  600PROCloadsamples
+  610PROCassemble
+  620PROCendup
+  630PROCdrawgraph
+  640PROCmainloop
+  650END
+  660
+  670DEFPROCdrawgraph
+  680LOCALstartx%,starty%,p$,x%,y%,w%,step%
+  690GCOL0
+  700RECTANGLEFILL0,1023,63,-548
+  710RECTANGLEFILL0,1023-548,1279,34
+  720VDU5:GCOL7
+  730step%=1:WHILEzoom%*grid%*step%<16*4*600/1215:step%+=1:ENDWHILE
+  740x%=(-xgraph/(grid%*step%)-INT(-xgraph/(grid%*step%)))*(grid%*step%)*zoom%
+  750w%=-INT(-xgraph/(grid%*step%))*(grid%*step%)
+  760WHILEx%<=600
+  770p$=STR$w%
+  780MOVEx%/600*1215+64-LENp$*8,500
+  790PRINTp$
+  800x%+=zoom%*grid%*step%
+  810w%+=grid%*step%
+  820ENDWHILE
+  830step%=1:WHILEzoom%*grid%*step%<32*600/1215:step%+=1:ENDWHILE
+  840y%=(-ygraph/(grid%*step%)-INT(-ygraph/(grid%*step%)))*(grid%*step%)*zoom%
+  850w%=-INT(-ygraph/(grid%*step%))*(grid%*step%)
+  860WHILEy%<=250
+  870p$=STR$w%
+  880MOVE56-LENp$*16,y%/600*1215+514+12
+  890PRINTp$
+  900y%+=zoom%*grid%*step%
+  910w%+=grid%*step%
+  920ENDWHILE
+  930VDU4
+  940PROCdrawgrid
+  950ENDPROC
+  960
+  970DEFPROCdrawgrid
+  980GCOL4:RECTANGLEFILL64,514,1279,509
+  990IFshowgrid%THENPROCcalldrawgrid
+ 1000PROCdrawpath
+ 1010ENDPROC
+ 1020
+ 1030DEFPROCdrawmenus
+ 1040LOCALN%
+ 1050COLOUR128+4:COLOUR13
+ 1060PRINTTAB(0,18);" Edit menu";TAB(21);"Options";TAB(41);"Cut out";TAB(61);"File";TAB(80)
+ 1070PROCprintdisctype
+ 1080COLOUR128
+ 1090PRINTTAB(1,19);"Delete point";TAB(20);"Grid  -   ";FNalign(3," ",STR$grid%);"mm  ";TAB(40);"Start cut";TAB(60);"Load"
+ 1100PRINTTAB(1,20);"Delete whole shape";TAB(20);"Snap  - ";FNonoroff(snap%);TAB(40);"Temp -    ";FNtemp(cuttemp%);"   ";TAB(60);"Save"
+ 1110PRINTTAB(1,21);"Undo";TAB(20);"Grid  - ";FNonoroff(showgrid%);TAB(40);"Reset to origin";TAB(60);"Erase"
+ 1120PRINTTAB(1,22);"Redo";TAB(20);"Zoom  -    ";FNalign(2," ",STR$zoom%);"    ";TAB(40);"Speach - ";FNonoroff(speach%);TAB(60);"Catalogue"
+ 1130GCOL7
+ 1140FORN%=0TO3
+ 1150RECTANGLEN%*20*16,448,20*16-1,-32*5-8
+ 1160NEXT
+ 1170COLOUR128+4:COLOUR13
+ 1180PRINTTAB(0,24);" Press SHIFT for help";TAB(37);"(   .  ,   .  )";TAB(54);"Manual operation";TAB(80)
+ 1190COLOUR128:COLOUR7
+ 1200PRINTTAB(55,26);"        ";TAB(55,28);"        ";TAB(55,30);"        "
+ 1210RECTANGLE0,256,53*16-1,-255
+ 1220RECTANGLE53*16,256,27*16-1,-255
+ 1230PRINTTAB(68,26);"Disable";TAB(66,27);"ax ay bx by";TAB(67,29);"Wire temp";TAB(67,30);"   ";FNtemp(normtemp%);"   ";
+ 1240ENDPROC
+ 1250
+ 1260DEFPROChelp(H$)
+ 1270IFH$=""THENH$="To get help on something, move the mouse onto it and press SHIFT. Also, press 'H' for help on keys"
+ 1280IFH$=OH$THENENDPROC
+ 1290OH$=H$
+ 1300PROCtexton
+ 1310CLS
+ 1320SYS"OS_PrettyPrint",H$
+ 1330PROCwindowoff
+ 1340ENDPROC
+ 1350
+ 1360DEFPROCscrollgraph
+ 1370LOCALoxgraph,oygraph,oxgraph2,oygraph2,x%,y%,z%,nx%,ny%
+ 1380MOUSEx%,y%,z%
+ 1390oxgraph=xgraph:oygraph=ygraph
+ 1400oxgraph2=xgraph:oygraph2=ygraph
+ 1410MOUSERECTANGLE-32768,-32768,65535,65535
+ 1420oldshowgrid%=showgrid%
+ 1430IFgrid%*zoom%<20THENshowgrid%=FALSE
+ 1440WHILEz%
+ 1450MOUSEnx%,ny%,z%
+ 1460xgraph=oxgraph+(x%-nx%)/zoom%/2
+ 1470ygraph=oygraph+(y%-ny%)/zoom%/2
+ 1480IFxgraph<0THENxgraph=0
+ 1490IFygraph<0THENygraph=0
+ 1500IFxgraph>600-600/zoom%THENxgraph=600-600/zoom%
+ 1510IFygraph>250-250/zoom%THENygraph=250-250/zoom%
+ 1520IFoxgraph2<>xgraph ORoygraph2<>ygraph THENPROCdrawgraph
+ 1530oxgraph2=xgraph
+ 1540oygraph2=ygraph
+ 1550ENDWHILE
+ 1560showgrid%=oldshowgrid%
+ 1570PROCdrawgrid
+ 1580MOUSERECTANGLE0,0,1279,1023
+ 1590ENDPROC
+ 1600
+ 1610DEFPROCmainloop
+ 1620quit%=0:ONERRORPROCerror
+ 1630REPEAT
+ 1640A$=INKEY$(0)
+ 1650CASEA$OF
+ 1660WHEN" ":PROCnicedisplay:T$="Press SPACE to resume.":COLOUR7:PRINTTAB(40-LENT$DIV2,13);T$:MOUSEOFF:REPEATUNTILINKEY(0)=32:PROCdrawgraph:MOUSEON:*FX 15
+ 1670WHEN" ":PROCmoveedit(-1)
+ 1680WHEN" ":PROCmoveedit(1)
+ 1690WHENCHR$127:PROCdeletepoint
+ 1700WHEN"U","u":PROCundo
+ 1710WHEN"R","r":PROCredo
+ 1720WHEN"G","g":PROCtogglegrid
+ 1730WHEN"S","s":PROCtogglesnap
+ 1740WHEN"C","c":PROCcat(1,0)
+ 1750WHEN"H","h":PROChelpsummary
+ 1760WHEN"*":PROCstarcommands
+ 1770WHEN"T","t":PROCtransform
+ 1780WHEN"#":PROCsavesetup
+ 1790WHENCHR$13:PROCtypepoint
+ 1800ENDCASE
+ 1810MOUSEx%,y%,z%
+ 1820IFy%>=512ANDx%>=64THEN
+ 1830 PROCcoords
+ 1840 IFINKEY-1THEN
+ 1850  PROChelp("LEFT MOUSE BUTTON adds a point along white line. MIDDLE MOUSE BUTTON moves red point. RIGHT MOUSE BUTTON moves around grid. Use   and   keys to move editing point around path, and hold down CTRL as well to reach the end of the path.")
+ 1860 ENDIF
+ 1870 CASEz%OF
+ 1880  WHEN1:PROCscrollgraph
+ 1890  WHEN2:PROCmoveapoint
+ 1900  WHEN4:PROCaddnode
+ 1910  OTHERWISE:IFnodes%<>0THENPROCdrawghost
+ 1920 ENDCASE
+ 1930ELSE
+ 1940 x%=x%DIV16
+ 1950 y%=(1023-y%)DIV32
+ 1960 IFz%=7THENPRINTCHR$30;x%,y%,
+ 1970 IFx%>=28ANDx%<=30ANDy%=22ANDz%<>0THENPROCchangezoom(1)
+ 1980 IFx%>=36ANDx%<=38ANDy%=22ANDz%<>0THENPROCchangezoom(-1)
+ 1990 IFx%>=28ANDx%<=30ANDy%=19ANDz%<>0THENPROCchangegrid(1)
+ 2000 IFx%>=36ANDx%<=38ANDy%=19ANDz%<>0THENPROCchangegrid(-1)
+ 2010 IFx%>=48ANDx%<=50ANDy%=20ANDz%<>0THENPROCchangecuttemp(1)
+ 2020 IFx%>=56ANDx%<=58ANDy%=20ANDz%<>0THENPROCchangecuttemp(-1)
+ 2030 IFx%>=66ANDx%<=68ANDy%=30ANDz%<>0THENPROCchangenormtemp(1)
+ 2040 IFx%>=74ANDx%<=76ANDy%=30ANDz%<>0THENPROCchangenormtemp(-1)
+ 2050 IFx%>=66ANDx%<=76ANDy%=30ANDINKEY-1THENPROChelp("Click on the arrows to change the wire temperature. Use LEFT MOUSE BUTTON to change in steps of 1, MIDDLE MOUSE BUTTON to change in steps of 10 and RIGHT MOUSE BUTTON to change in steps of 50.")
+ 2060 IFx%>=1ANDx%<=49ANDy%>=27ANDy%<=30ANDOH$="cat"ANDz%<>0THENPROCcatselect
+ 2070 IFx%>=66ANDx%<=76ANDy%>=26ANDy%<=27THENPROCdisablemenu
+ 2080 IFx%>=55ANDx%<=62ANDy%>=26ANDy%<=30THENPROCmanualmenu
+ 2090 IFx%<=52ANDy%>=24ANDINKEY-1THENPROChelp("This is the help window. If you press SHIFT, help about where the pointer is appears here. It can also be used to list shapes on disk, which can be selected for loading, saving, or erasing. Press 'H' for keys summary.")
+ 2100
+ 2110 x%=x%DIV20:y%=y%-19
+ 2120 IFx%=0ANDy%=0THEN
+ 2130  IFINKEY-1THENPROChelp("Click here to delete the selected point (shown in red). This can also be done by pressing the DELETE key.")
+ 2140  IFz%THENPROCdeletepoint:REPEATMOUSEx%,y%,z%:UNTILz%=0
+ 2150 ENDIF
+ 2160 IFx%=1ANDy%=0ANDINKEY-1THENPROChelp("Click on the arrows to change the grid size. Use LEFT MOUSE BUTTON to change in steps of 1, MIDDLE MOUSE BUTTON to change in steps of 5 and RIGHT MOUSE BUTTON to change in steps of 10.")
+ 2170 IFx%=1ANDy%=3ANDINKEY-1THENPROChelp("Click on the arrows to change the zoom factor. Use LEFT MOUSE BUTTON to change in steps of 1, MIDDLE MOUSE BUTTON to change in steps of 5 and RIGHT MOUSE BUTTON to change in steps of 10.")
+ 2180 IFx%=2ANDy%=1ANDINKEY-1THENPROChelp("Click on the arrows to change the wire temperature when cutting. Use LEFT MOUSE BUTTON to change in steps of 1, MIDDLE MOUSE BUTTON to change in steps of 10 and RIGHT MOUSE BUTTON to change in steps of 50.")
+ 2190 IFx%=2ANDy%=0THEN
+ 2200  IFINKEY-1THENPROChelp("Click here to start the wire cutter cutting out the shape.")
+ 2210  IFz%THENPROCcheckcut
+ 2220 ENDIF
+ 2230 IFx%=1ANDy%=1THEN
+ 2240  IFINKEY-1THENPROChelp("Click here to toggle the snap option on and off. This can also be done by pressing 'S'. When this option is on, all clicks on the graph are moved to the nearest grid point.")
+ 2250  IFz%THENPROCtogglesnap:REPEATMOUSEx1%,y1%,z%:UNTILz%=0
+ 2260 ENDIF
+ 2270 IFx%=1ANDy%=2THEN
+ 2280  IFINKEY-1THENPROChelp("Click here to toggle the grid on and off. This can also be done by pressing 'G'. Note that if even if the grid is off, the snap option still works.")
+ 2290  IFz%THENPROCtogglegrid:REPEATMOUSEx1%,y1%,z%:UNTILz%=0
+ 2300 ENDIF
+ 2310 IFx%=0ANDy%=1THEN
+ 2320  IFINKEY-1THENPROChelp("Select this option to delete the whole shape. You will be asked for confirmation.")
+ 2330  IFz%THENPROCdeleteshape
+ 2340 ENDIF
+ 2350 IFx%=2ANDy%=2THEN
+ 2360  IFINKEY-1THENPROChelp("This moves the wire on the cutter to the origin.")
+ 2370  IFz%THENPROChelp("Resetting to origin. Please wait..."):MOUSEOFF:PROCreset0:PROCout32:PROChelp(""):MOUSEON:*FX15
+ 2380 ENDIF
+ 2390 IFx%=0ANDy%=2THEN
+ 2400  IFINKEY-1THENPROChelp("This will undo the previous operation on the shape (add point, delete point or move point). This can also be done by pressing 'U'.")
+ 2410  IFz%THENPROCundo:REPEATMOUSEx1%,y1%,z%:UNTILz%=0
+ 2420 ENDIF
+ 2430 IFx%=0ANDy%=3THEN
+ 2440  IFINKEY-1THENPROChelp("This will redo any previous undo operation on the shape (add point, delete point or move point). This can also be done by pressing 'R'.")
+ 2450  IFz%THENPROCredo:REPEATMOUSEx1%,y1%,z%:UNTILz%=0
+ 2460 ENDIF
+ 2470 IFx%=2ANDy%=3THEN
+ 2480  IFINKEY-1THENPROChelp("This option toggles the speach on or off.")
+ 2490  IFz%THENPROCtogglespeach:REPEATMOUSEx1%,y1%,z%:UNTILz%=0
+ 2500 ENDIF
+ 2510 IFx%=3THEN
+ 2520  IFINKEY-1THEN
+ 2530   CASEy%OF
+ 2540    WHEN-1:PROChelp("Click here to change the filing system to be used for disc operations. The current filing system is shown in brackets.")
+ 2550    WHEN0:PROChelp("Click to load in a previously saved shape from disk.")
+ 2560    WHEN1:PROChelp("Click to save the current shape to disk.")
+ 2570    WHEN2:PROChelp("Click to erase a shape from disk.")
+ 2580    WHEN3:PROChelp("Click to list all shapes on disk in this window. These can then be selected in order to load/save/erase them. This can also be done by pressing 'C'. If 'more >>>' appears at the end, clicking on it will show more files.")
+ 2590   ENDCASE
+ 2600  ENDIF
+ 2610  IFz%THEN
+ 2620   CASEy%OF
+ 2630    WHEN-1:PROCchangedisc
+ 2640    WHEN0:PROCload
+ 2650    WHEN1:PROCsave
+ 2660    WHEN2:PROCerase
+ 2670    WHEN3:PROCcat(1,0)
+ 2680   ENDCASE
+ 2690  ENDIF
+ 2700 ENDIF
+ 2710ENDIF
+ 2720UNTILFALSE
+ 2730ENDPROC
+ 2740
+ 2750DEFPROCwait(X%)
+ 2760LOCALN%
+ 2770FORN%=1TOX%:WAIT:NEXT
+ 2780ENDPROC
+ 2790
+ 2800DEFPROCchangezoom(D%)
+ 2810LOCALs%
+ 2820CASEz%OF
+ 2830WHEN4:s%=1
+ 2840WHEN2:s%=5
+ 2850WHEN1:s%=10
+ 2860ENDCASE
+ 2870zoom%+=D%*s%
+ 2880IFzoom%>25THENzoom%=25
+ 2890IFzoom%<1THENzoom%=1
+ 2900IFgrid%*zoom%<10THENzoom%=INT(10/grid%+.9999)
+ 2910PRINTTAB(32,22);FNalign(2," ",STR$zoom%)
+ 2920PROCwait(5)
+ 2930IFxgraph>600-600/zoom%THENxgraph=600-600/zoom%
+ 2940IFygraph>250-250/zoom%THENygraph=250-250/zoom%
+ 2950PROCdrawgraph
+ 2960ENDPROC
+ 2970
+ 2980DEFPROCchangegrid(D%)
+ 2990LOCALs%
+ 3000CASEz%OF
+ 3010WHEN4:s%=1
+ 3020WHEN2:s%=5
+ 3030WHEN1:s%=10
+ 3040ENDCASE
+ 3050grid%+=D%*s%
+ 3060IFgrid%>250THENgrid%=250
+ 3070IFgrid%<1THENgrid%=1
+ 3080IFgrid%*zoom%<10THENgrid%=INT(10/zoom%+.9999)
+ 3090PRINTTAB(31,19);FNalign(3," ",STR$grid%)
+ 3100PROCwait(5)
+ 3110PROCdrawgraph
+ 3120ENDPROC
+ 3130
+ 3140DEFPROCchangecuttemp(D%)
+ 3150LOCALs%
+ 3160CASEz%OF
+ 3170WHEN4:s%=1
+ 3180WHEN2:s%=10
+ 3190WHEN1:s%=50
+ 3200ENDCASE
+ 3210cuttemp%+=D%*s%
+ 3220IFcuttemp%>254THENcuttemp%=254
+ 3230IFcuttemp%<0THENcuttemp%=0
+ 3240PRINTTAB(51,20);FNtemp(cuttemp%)
+ 3250PROCwait(5)
+ 3260ENDPROC
+ 3270
+ 3280DEFPROCchangenormtemp(D%)
+ 3290LOCALs%
+ 3300CASEz%OF
+ 3310WHEN4:s%=1
+ 3320WHEN2:s%=10
+ 3330WHEN1:s%=50
+ 3340ENDCASE
+ 3350normtemp%+=D%*s%
+ 3360IFnormtemp%>254THENnormtemp%=254
+ 3370IFnormtemp%<0THENnormtemp%=0
+ 3380PRINTTAB(70,30);FNtemp(normtemp%)
+ 3390PROCwait(5)
+ 3400PROCout32
+ 3410ENDPROC
+ 3420
+ 3430DEFFNalign(X%,X$,N$)
+ 3440=STRING$(X%-LENN$,X$)+N$
+ 3450
+ 3460DEFFNfillup(X%,X$,N$)
+ 3470=N$+STRING$(X%-LENN$,X$)
+ 3480
+ 3490DEFFNonoroff(X%)
+ 3500IFX%THEN="ON "ELSE="OFF"
+ 3510
+ 3520DEFPROCaddnode
+ 3530 nx=(x%-64)/1215*600/zoom%+xgraph
+ 3540 ny=(y%-512)/1215*600/zoom%+ygraph
+ 3550 IFsnap%THENPROCnearest
+ 3560 PROCdoaddnode(editpoint%,nx,ny,FALSE)
+ 3570 PROCenterundo("Add",editpoint%,nx,ny,0,0)
+ 3580ENDPROC
+ 3590
+ 3600DEFPROCdoaddnode(pos%,nx,ny,undo%)
+ 3610LOCALN%
+ 3620IFnodes%>=maxnodes%THEN
+ 3630 VDU7:PROChelp("Out of memory")
+ 3640ELSE
+ 3650 IFpos%+1<>nodes%THEN
+ 3660  FORN%=nodes%-1TOpos%+1STEP-1
+ 3670   nodes(N%+1,0)=nodes(N%,0)
+ 3680   nodes(N%+1,1)=nodes(N%,1)
+ 3690  NEXT
+ 3700 ENDIF
+ 3710 nodes(pos%+1,0)=nx
+ 3720 nodes(pos%+1,1)=ny
+ 3730 IFNOTundo%THENeditpoint%+=1
+ 3740 nodes%+=1
+ 3750 IFNOTundo%THENPROCdrawgrid:PROCshowedit:REPEATMOUSEx%,y%,z%:UNTILz%=0
+ 3760ENDIF
+ 3770ENDPROC
+ 3780
+ 3790DEFPROCwindowon
+ 3800VDU24,64;512;1279;1023;
+ 3810ENDPROC
+ 3820
+ 3830DEFPROCwindowoff
+ 3840VDU26
+ 3850ENDPROC
+ 3860
+ 3870DEFPROCdrawpath
+ 3880LOCALN%,x2%,y2%
+ 3890PROCwindowon
+ 3900FORN%=0TOnodes%-1
+ 3910GCOL11:IFN%=editpoint%THENGCOL10
+ 3920x2%=(nodes(N%,0)-xgraph)*zoom%/600*1215+64
+ 3930y2%=(nodes(N%,1)-ygraph)*zoom%/600*1215+512
+ 3940CIRCLEFILLx2%,y2%,8
+ 3950IFN%<>nodes%-1THEN
+ 3960IFN%=editpoint%THENGCOL7
+ 3970LINEx2%,y2%,(nodes(N%+1,0)-xgraph)*zoom%/600*1215+64,(nodes(N%+1,1)-ygraph)*zoom%/600*1215+512
+ 3980ENDIF
+ 3990NEXT
+ 4000PROCwindowoff
+ 4010ENDPROC
+ 4020
+ 4030DEFPROCdrawghost
+ 4040LOCALnx,ny,f%
+ 4050nx=(x%-64)/1215*600/zoom%+xgraph
+ 4060ny=(y%-512)/1215*600/zoom%+ygraph
+ 4070IFsnap%THENPROCnearest
+ 4080PROCwindowon
+ 4090f%=editpoint%+1=nodes%
+ 4100IFf%THENGCOL3,3ELSEGCOL3,11
+ 4110LINE(nx-xgraph)*zoom%/600*1215+64,(ny-ygraph)*zoom%/600*1215+512,(nodes(editpoint%,0)-xgraph)*zoom%/600*1215+64,(nodes(editpoint%,1)-ygraph)*zoom%/600*1215+512
+ 4120IFNOTf%THENLINE(nx-xgraph)*zoom%/600*1215+64,(ny-ygraph)*zoom%/600*1215+512,(nodes(editpoint%+1,0)-xgraph)*zoom%/600*1215+64,(nodes(editpoint%+1,1)-ygraph)*zoom%/600*1215+512
+ 4130PROCwait(4)
+ 4140LINE(nx-xgraph)*zoom%/600*1215+64,(ny-ygraph)*zoom%/600*1215+512,(nodes(editpoint%,0)-xgraph)*zoom%/600*1215+64,(nodes(editpoint%,1)-ygraph)*zoom%/600*1215+512
+ 4150IFNOTf%THENLINE(nx-xgraph)*zoom%/600*1215+64,(ny-ygraph)*zoom%/600*1215+512,(nodes(editpoint%+1,0)-xgraph)*zoom%/600*1215+64,(nodes(editpoint%+1,1)-ygraph)*zoom%/600*1215+512
+ 4160PROCwindowoff
+ 4170ENDPROC
+ 4180
+ 4190DEFPROCmoveedit(X%)
+ 4200IFINKEY-2THENX%=X%*maxnodes%
+ 4210editpoint%+=X%
+ 4220IFeditpoint%>=nodes%THENeditpoint%=nodes%-1
+ 4230IFeditpoint%<0THENeditpoint%=0
+ 4240PROCdrawgrid:PROCshowedit
+ 4250ENDPROC
+ 4260
+ 4270DEFPROCdeletepoint
+ 4280PROCenterundo("Delete",editpoint%,nodes(editpoint%,0),nodes(editpoint%,1),0,0)
+ 4290PROCdodeletepoint(editpoint%,FALSE):PROCshowedit
+ 4300ENDPROC
+ 4310
+ 4320DEFPROCdodeletepoint(pos%,undo%)
+ 4330LOCALN%
+ 4340IFpos%=0THEN
+ 4350VDU7:PROChelp("You cannot delete the first point. It is set at (0,0).")
+ 4360ELSE
+ 4370FORN%=pos%+1TOnodes%-1
+ 4380nodes(N%-1,0)=nodes(N%,0)
+ 4390nodes(N%-1,1)=nodes(N%,1)
+ 4400NEXT
+ 4410nodes%-=1
+ 4420IFNOTundo%THENeditpoint%-=1:PROCdrawgrid
+ 4430ENDIF
+ 4440ENDPROC
+ 4450
+ 4460DEFPROCmoveapoint
+ 4470IFeditpoint%=0THEN
+ 4480VDU7:PROChelp("You cannot move the first point. It is set at (0,0).")
+ 4490ELSE
+ 4500PROCwindowon
+ 4510WHILEz%
+ 4520MOUSEx%,y%,z%
+ 4530IFy%>=512ANDx%>=64THEN
+ 4540PROCcoords
+ 4550nx=(x%-64)/1215*600/zoom%+xgraph
+ 4560ny=(y%-512)/1215*600/zoom%+ygraph
+ 4570IFsnap%THENPROCnearest
+ 4580GCOL3,11
+ 4590f%=editpoint%+1=nodes%
+ 4600LINE(nx-xgraph)*zoom%/600*1215+64,(ny-ygraph)*zoom%/600*1215+512,(nodes(editpoint%-1,0)-xgraph)*zoom%/600*1215+64,(nodes(editpoint%-1,1)-ygraph)*zoom%/600*1215+512
+ 4610IFNOTf%THENLINE(nx-xgraph)*zoom%/600*1215+64,(ny-ygraph)*zoom%/600*1215+512,(nodes(editpoint%+1,0)-xgraph)*zoom%/600*1215+64,(nodes(editpoint%+1,1)-ygraph)*zoom%/600*1215+512
+ 4620PROCwait(4)
+ 4630LINE(nx-xgraph)*zoom%/600*1215+64,(ny-ygraph)*zoom%/600*1215+512,(nodes(editpoint%-1,0)-xgraph)*zoom%/600*1215+64,(nodes(editpoint%-1,1)-ygraph)*zoom%/600*1215+512
+ 4640IFNOTf%THENLINE(nx-xgraph)*zoom%/600*1215+64,(ny-ygraph)*zoom%/600*1215+512,(nodes(editpoint%+1,0)-xgraph)*zoom%/600*1215+64,(nodes(editpoint%+1,1)-ygraph)*zoom%/600*1215+512
+ 4650ENDIF
+ 4660ENDWHILE
+ 4670IFy%>=512ANDx%>=64THEN
+ 4680PROCwindowoff
+ 4690PROCenterundo("Move",editpoint%,nodes(editpoint%,0),nodes(editpoint%,1),nx,ny)
+ 4700nodes(editpoint%,0)=nx:nodes(editpoint%,1)=ny
+ 4710PROCdrawgrid:PROCshowedit
+ 4720ENDIF
+ 4730ENDIF
+ 4740ENDPROC
+ 4750
+ 4760DEFPROCdomoveapoint(pos%,x%,y%)
+ 4770nodes(pos%,0)=x%:nodes(pos%,1)=y%
+ 4780ENDPROC
+ 4790
+ 4800DEFPROCcoords
+ 4810LOCALnx,ny
+ 4820nx=(x%-64)/1215*600/zoom%+xgraph
+ 4830ny=(y%-512)/1215*600/zoom%+ygraph
+ 4840IFsnap%THENPROCnearest
+ 4850COLOUR128+4:COLOUR7
+ 4860PRINTTAB(38,24);FNalign(3," ",STR$INTnx);TAB(41,24);FNfillup(3," ",MID$(STR$(nx-INTnx),2,3))
+ 4870PRINTTAB(45,24);FNalign(3," ",STR$INTny);TAB(48,24);FNfillup(3," ",MID$(STR$(ny-INTny),2,3))
+ 4880COLOUR128
+ 4890ENDPROC
+ 4900
+ 4910DEFPROCdeleteshape
+ 4920LOCALA$
+ 4930*FX 15
+ 4940PROChelp("Are you sure (Y/N) ?")
+ 4950REPEATA$=INKEY$(0):UNTILA$<>""
+ 4960PROChelp("")
+ 4970IFA$="Y"ORA$="y"THENnodes%=1:editpoint%=0:PROCdrawgrid:PROCclearundobuffer:PROCshowedit
+ 4980ENDPROC
+ 4990
+ 5000DEFPROCcat(p1%,p2%)
+ 5010catologuepage%=p1%:catologueno%=p2%
+ 5020LOCALr%,c%,b%
+ 5030PROCtexton:OH$="cat":CLS
+ 5040c%=0
+ 5050PRINT" Shapes on disk (part ";catologuepage%;"):"
+ 5060SYS"OS_GBPB",9,discs$(disc%,1),buf%,17,catologueno%,256,"*"TO,,,r%,catologueno%
+ 5070cat$()=""
+ 5080IFr%=0THEN
+ 5090CLS:PRINT"No shapes on disk."
+ 5100ELSE
+ 5110IFr%=17THENr%-=2:more%=TRUE:catologueno%-=2ELSEmore%=FALSE
+ 5120b%=buf%
+ 5130FORc%=0TOr%-1
+ 5140A$=FNnull(b%):b%+=LENA$+1
+ 5150cat$(c%MOD4,c%DIV4)=A$
+ 5160IFr%THENPRINTFNfillup(12-((c%+1)/4=(c%+1)DIV4)*3," ",A$);
+ 5170NEXT
+ 5180IFmore%THENPRINT"  more >>>";:cat$(3,3)=">"
+ 5190ENDIF
+ 5200PROCwindowoff
+ 5210REPEATMOUSEx%,y%,z%:UNTILz%=0
+ 5220ENDPROC
+ 5230
+ 5240DEFPROCtexton
+ 5250sx%=-1
+ 5260VDU28,1,30,51,26,30
+ 5270ENDPROC
+ 5280
+ 5290DEFFNnull(X%)
+ 5300LOCALX$
+ 5310SYS&2C,X%TOX$
+ 5320=X$
+ 5330
+ 5340DEFPROCcatselect
+ 5350LOCALnx%,ny%
+ 5360nx%=(x%-1)DIV12:ny%=y%-27
+ 5370IFnx%<4THEN
+ 5380IFcat$(nx%,ny%)=">"THEN
+ 5390PROCcat(catologuepage%+1,catologueno%)
+ 5400ELSE
+ 5410IFcat$(nx%,ny%)<>""THEN
+ 5420IFsx%<>-1THENCOLOUR128:PRINTTAB(sx%*12+1,sy%+27);FNfillup(10," ",selectedcat$)
+ 5430selectedcat$=cat$(nx%,ny%)
+ 5440COLOUR128+4:PRINTTAB(nx%*12+1,ny%+27);FNfillup(10," ",selectedcat$)
+ 5450COLOUR128
+ 5460sx%=nx%:sy%=ny%
+ 5470ENDIF
+ 5480ENDIF
+ 5490ENDIF
+ 5500ENDPROC
+ 5510
+ 5520DEFPROCbufferselected
+ 5530IFselectedcat$<>""THEN
+ 5540FORN%=1TOLENselectedcat$
+ 5550SYS"OS_Byte",138,0,ASCMID$(selectedcat$,N%,1)
+ 5560NEXT
+ 5570ENDIF
+ 5580ENDPROC
+ 5590
+ 5600DEFPROCload
+ 5610LOCALF$,F%
+ 5620PROCtexton:CLS:OH$="load"
+ 5630SYS"OS_PrettyPrint","Type in filename of shape to load. (The disc which will be used is shown in the 'File' menu.)"
+ 5640PROCbufferselected
+ 5650PROCRC
+ 5660quit%=2:MOUSEOFF
+ 5670INPUT'"LOAD: "F$
+ 5680quit%=0:MOUSEON
+ 5690IFF$<>""THEN
+ 5700F%=OPENINFNconvertfilename(F$)
+ 5710IFF%=0THENERROR1,"File '"+F$+"' does not exist"
+ 5720IFGET$#F%<>"WIRE"THENCLOSE#F%:ERROR1,"File '"+F$+"' is not a shape file"
+ 5730nodes%=0
+ 5740WHILENOTEOF#F%
+ 5750INPUT#F%,nodes(nodes%,0),nodes(nodes%,1)
+ 5760nodes%+=1
+ 5770ENDWHILE
+ 5780CLOSE#F%
+ 5790PROCclearundobuffer
+ 5800ENDIF
+ 5810*FX 15
+ 5820SYS"OS_RemoveCursors"
+ 5830CLS:PROChelp("")
+ 5840selectedcat$=F$
+ 5850PROCwindowoff
+ 5860editpoint%=nodes%-1
+ 5870PROCdrawgrid
+ 5880ENDPROC
+ 5890
+ 5900DEFPROCsave
+ 5910LOCALF%,F$,N%
+ 5920PROCtexton:CLS:OH$="save"
+ 5930SYS"OS_PrettyPrint","Type in filename of shape to save. (The disc which will be used is shown in the 'File' menu.)"
+ 5940PROCbufferselected
+ 5950PROCRC
+ 5960quit%=2:MOUSEOFF
+ 5970INPUT'"SAVE: "F$
+ 5980quit%=0:MOUSEON
+ 5990IFF$<>""THEN
+ 6000F%=OPENOUTFNconvertfilename(F$)
+ 6010BPUT#F%,"WIRE"
+ 6020FORN%=0TOnodes%-1
+ 6030PRINT#F%,nodes(N%,0),nodes(N%,1)
+ 6040NEXT
+ 6050CLOSE#F%
+ 6060ENDIF
+ 6070*FX 15
+ 6080SYS"OS_RemoveCursors"
+ 6090CLS:PROChelp("")
+ 6100selectedcat$=F$
+ 6110PROCwindowoff
+ 6120ENDPROC
+ 6130
+ 6140DEFPROCerase
+ 6150PROCtexton:CLS:OH$="erase"
+ 6160SYS"OS_PrettyPrint","Type in filename of shape to delete. (The disc which will be used is shown in the 'File' menu.)"
+ 6170PROCbufferselected
+ 6180PROCRC
+ 6190quit%=2:MOUSEOFF
+ 6200INPUT'"ERASE: "F$
+ 6210quit%=0:MOUSEON
+ 6220IFF$<>""THENOSCLI"Delete "+FNconvertfilename(F$)
+ 6230*FX 15
+ 6240SYS"OS_RemoveCursors"
+ 6250CLS:PROChelp("")
+ 6260selectedcat$=F$
+ 6270PROCwindowoff
+ 6280ENDPROC
+ 6290
+ 6300DEFPROCerror
+ 6310*FX229 0
+ 6320MOUSEON
+ 6330RG%=FALSE
+ 6340PROCRC
+ 6350SYS"OS_RemoveCursors"
+ 6360COLOUR128:COLOUR7:VDU4
+ 6370PROCtexton:CLS:OH$="error"
+ 6380PROCout32
+ 6390IFERR=17THEN
+ 6400 CASEquit%OF
+ 6410 WHEN0:
+ 6420  PROCout32
+ 6430  quit%=1
+ 6440  VDU7
+ 6450  SYS"OS_PrettyPrint","Do you wish to quit the program (Y/N) ?"
+ 6460  *FX 15
+ 6470  MOUSEOFF
+ 6480  REPEATA$=INKEY$(0):MOUSEx%,y%,z%:UNTILA$=""ANDz%=0
+ 6490  REPEATA$=INKEY$(0):UNTILA$<>""
+ 6500  MOUSEON
+ 6510  *FX 15
+ 6520  IFA$="Y"ORA$="y"THEN
+ 6530   PROCleaving
+ 6540  ENDIF
+ 6550  quit%=0:RG%=TRUE
+ 6560 WHEN1:quit%=0:RG%=TRUE
+ 6570 WHEN2:quit%=0:RG%=TRUE
+ 6580 ENDCASE
+ 6590ELSE
+ 6600VDU7
+ 6610 quit%=2
+ 6620 SYS"OS_PrettyPrint","Error: "+REPORT$+CHR$13+CHR$13+"Press any key or click mouse to continue."+STR$ERL
+ 6630 *FX 15
+ 6640 MOUSEOFF
+ 6650 REPEATA$=INKEY$(0):MOUSEx%,y%,z%:UNTILA$=""ANDz%=0
+ 6660 REPEATA$=INKEY$(0):MOUSEx%,y%,z%:UNTILA$<>""ORz%<>0
+ 6670 REPEATA$=INKEY$(0):MOUSEx%,y%,z%:UNTILA$=""ANDz%=0
+ 6680 MOUSEON
+ 6690 quit%=0
+ 6700ENDIF
+ 6710CLS:PROChelp("")
+ 6720PROCwindowoff
+ 6730IFRG%THENPROCdrawgraph
+ 6740*FX 15
+ 6750ENDPROC
+ 6760
+ 6770DEFPROCRC
+ 6780LOCALN%
+ 6790FORN%=1TO5
+ 6800SYS"OS_RestoreCursors"
+ 6810NEXT
+ 6820ENDPROC
+ 6830
+ 6840DEFPROCcheckcut
+ 6850LOCALT$
+ 6860IFnodes%=1THEN
+ 6870 VDU7:PROChelp("You must create or load in a shape before anything can be cut.")
+ 6880ELSE
+ 6890PROCtexton:CLS:OH$="cut?"
+ 6900T$=STR$FNtimings
+ 6910SYS"OS_PrettyPrint","This shape will take approx "+T$+" minutes (not including resetting) to cut out. Are you sure you want to start cutting (Y/N) ?"
+ 6920quit%=2
+ 6930MOUSEOFF
+ 6940REPEATA$=INKEY$(0):MOUSEx%,y%,z%:UNTILA$=""ANDz%=0
+ 6950REPEATA$=INKEY$(0):MOUSEx%,y%,z%:UNTILA$<>""ORz%<>0
+ 6960PROCwindowoff
+ 6970IFA$="Y"ORA$="y"THENPROCcut ELSEPROChelp("")
+ 6980MOUSEON
+ 6990*FX 15
+ 7000quit%=0
+ 7010ENDIF
+ 7020ENDPROC
+ 7030
+ 7040DEFPROCcut
+ 7050LOCALN%,A
+ 7060 PROCreset0:quit%=2
+ 7070 PROCplaysample("Insert",TRUE):*FX 15
+ 7080 A=GET
+ 7090 SYS"PP_ShiftOut32",FNtemptosend(cuttemp%)
+ 7100 FORN%=1TOnodes%-1
+ 7110  PROChelp("Cutting time: "+T$+" minutes."+CHR$13+"Press ESCAPE to stop cutting."+CHR$13+"Cutting out line "+STR$N%+" out of "+STR$(nodes%-1)+" lines. Please wait...")
+ 7120  x=INT(nodes(N%,0)*stpmm+.5):y=INT(nodes(N%,1)*stpmm+.5)
+ 7130  PROCmovewire(x-stx,y-sty)
+ 7140 NEXT
+ 7150 PROCout32
+ 7160 VDU7
+ 7170 PROCplaysample("Wire",TRUE)
+ 7180 *FX 15
+ 7190ENDPROC
+ 7200
+ 7210DEFFNtemp(X%)
+ 7220IFX%THEN=FNalign(3," ",STR$X%)ELSE="OFF"
+ 7230
+ 7240DEFPROCout32
+ 7250SYS"PP_ShiftOut32",FNtemptosend(normtemp%)+disabled%
+ 7260ENDPROC
+ 7270
+ 7280DEFFNtemptosend(X%)
+ 7290LOCALA$
+ 7300A$=FNalign(3,":",STR$X%)
+ 7310=(X%<<8)+((ASCMID$(A$,1,1)-&30)<<20)+((ASCMID$(A$,2,1)-&30)<<24)+((ASCMID$(A$,3,1)-&30)<<28)-(1<<7)*(X%=0)
+ 7320
+ 7330DEFPROCdisablemenu
+ 7340LOCALm%,m$
+ 7350IFINKEY-1THENPROChelp("Click on ax, ay, bx, or by to disabled the respective motor. They are disabled when shown in red.")
+ 7360IFz%<>0ANDy%=27THEN
+ 7370 m%=(x%-66)DIV3
+ 7380 disabled%=disabled%EOR(1<<m%)
+ 7390 IFdisabled%AND(1<<m%)THENCOLOUR128+1ELSECOLOUR128
+ 7400 IFm%AND2THENm$="b"ELSEm$="a"
+ 7410 IFm%AND1THENm$+="y"ELSEm$+="x"
+ 7420 PRINTTAB(m%*3+66,27);m$;
+ 7430 COLOUR128
+ 7440 PROCout32
+ 7450REPEATMOUSEx%,y%,z%:UNTILz%=0
+ 7460ENDIF
+ 7470ENDPROC
+ 7480
+ 7490DEFPROCmanualmenu
+ 7500IFINKEY-1THENPROChelp("Click on any of the arrows to move the wire in that direction. LEFT MOUSE BUTTON will move the wire one step, MIDDLE MOUSE BUTTON will move it continuously while pressed, and RIGHT MOUSE BUTTON moves it faster.")
+ 7510 IFy%<>27ANDy%<>29ANDx%<>57ANDx%<>60ANDz%<>0THEN
+ 7520 dx%=(x%-55)DIV3-1:dy%=-((y%-26)DIV2-1)
+ 7530 IF(disabled%AND%101)<>0ANDdx%<>0THENdx%=0:h$="The ax and bx motors are not moving because one or both of them is disabled."+CHR$13ELSEh$=""
+ 7540 IF(disabled%AND%1010)<>0ANDdy%<>0THENdy%=0:h$+="The ay and by motors are not moving because one or both of them is disabled."
+ 7550 IFh$=""ANDOH$="manual"THENh$=" "
+ 7560 IFh$<>""THENPROChelp(h$):OH$="manual"
+ 7570 CASEz%OF
+ 7580  WHEN4:PROCmovewire(dx%,dy%):REPEATMOUSEx%,y%,z%:UNTILz%=0
+ 7590  WHEN2:PROCmovewire(dx%,dy%)
+ 7600  WHEN1:PROCmovewire(dx%*12,dy%*12)
+ 7610 ENDCASE
+ 7620ENDIF
+ 7630ENDPROC
+ 7640
+ 7650DEFPROCmovewire(x%,y%):REM in steps. REL.
+ 7660IFstx=-2THENERROR1,"The wire cannot be moved until it has been reset to the origin. To do this, select 'Reset to origin' in the 'Cut out' menu."
+ 7670LOCALdx%,dy%,N%,g,d%,sx%,sy%,c%,nstx,nsty
+ 7680sx%=SGNx%:sy%=SGNy%
+ 7690dx%=(SGNx%+1)DIV2:dy%=(SGNy%+1)DIV2
+ 7700x%=ABSx%:y%=ABSy%
+ 7710IFx%<>0ORy%<>0THEN
+ 7720 d%=dx%*34+dy%*136
+ 7730 IFx%>y%THEN
+ 7740  g=y%/x%
+ 7750  FORN%=1TOx%
+ 7760   c%=-(INT(y%+(N%-1)*g+.5)<>INT(y%+N%*g+.5))
+ 7770   nstx=stx+sx%
+ 7780   nsty=sty+sy%*c%
+ 7790   IFnstx>600*stpmm ORnstx<0 ORnsty<0ORnsty>250*stpmm THENERROR1,"Wire has hit the edge."
+ 7800   PROCdisesc
+ 7810   SYS"PP_ShiftOut8",17+68*c%+d%
+ 7820   SYS"PP_ShiftOut8",d%
+ 7830   stx=nstx
+ 7840   sty=nsty
+ 7850   PROCenescandslowit
+ 7860  NEXT
+ 7870 ELSE
+ 7880  g=x%/y%
+ 7890  FORN%=1TOy%
+ 7900   c%=-(INT(x%+(N%-1)*g+.5)<>INT(x%+N%*g+.5))
+ 7910   nstx=stx+sx%*c%
+ 7920   nsty=sty+sy%
+ 7930   IFnstx>600*stpmm ORnstx<0ORnsty<0ORnsty>250*stpmm THENERROR1,"Wire has hit the edge."
+ 7940   PROCdisesc
+ 7950   SYS"PP_ShiftOut8",68+17*c%+d%
+ 7960   SYS"PP_ShiftOut8",d%
+ 7970   stx=nstx
+ 7980   sty=nsty
+ 7990   PROCenescandslowit
+ 8000  NEXT
+ 8010 ENDIF
+ 8020ENDIF
+ 8030ENDPROC
+ 8040
+ 8050DEFPROCenescandslowit
+ 8060LOCALN%
+ 8070*FX 229 0
+ 8080FORN%=0TOcuttingspeed%
+ 8090IFINKEY(0)=27THEN*FX125
+ 8100NEXT
+ 8110ENDPROC
+ 8120
+ 8130DEFPROCdisesc
+ 8140*FX 229 1
+ 8150ENDPROC
+ 8160
+ 8170DEFPROCreset0
+ 8180LOCALm%,A
+ 8190quit%=2
+ 8200PROCplaysample("Please",TRUE):*FX 15
+ 8210A=GET
+ 8220PROChelp("Reseting to origin...")
+ 8230SYS"PP_ShiftOut32",&0AA00080
+ 8240REPEAT
+ 8250SYS"PP_ShiftIn8"TOm%:m%=m%EOR255
+ 8260m%=((m%AND16)>>4)+((m%AND32)>>3)+((m%AND64)>>2)+((m%AND128)>>1)
+ 8270SYS"PP_ShiftOut8",m%
+ 8280SYS"PP_ShiftOut8",0
+ 8290PROCresslow
+ 8300UNTILm%=0
+ 8310REPEAT
+ 8320SYS"PP_ShiftIn8"TOm%
+ 8330m%=((m%AND16)>>4)+((m%AND32)>>3)+((m%AND64)>>2)+((m%AND128)>>1)+170
+ 8340SYS"PP_ShiftOut8",m%
+ 8350SYS"PP_ShiftOut8",170
+ 8360PROCresslow
+ 8370PROCresslow
+ 8380PROCresslow
+ 8390UNTILm%=170
+ 8400stx=0:sty=0
+ 8410quit%=0
+ 8420*FX 15
+ 8430PROChelp("")
+ 8440ENDPROC
+ 8450
+ 8460DEFPROCresslow
+ 8470LOCALN%
+ 8480FORN%=0TOresetspeed%:NEXT
+ 8490ENDPROC
+ 8500
+ 8510DEFPROCstartup
+ 8520LOCALstate%
+ 8530MOUSEOFF
+ 8540SYS"PP_ShiftOut32",&0AA00080
+ 8550PROCnicedisplay
+ 8560T$="Loading. Please wait...":PRINTTAB(40-LENT$DIV2,13);T$
+ 8570MOUSEON
+ 8580MOUSETO640,400
+ 8590PROChelp("")
+ 8600PROCout32
+ 8610ENDPROC
+ 8620
+ 8630DEFPROCendup
+ 8640LOCALX%,Y%,Z%
+ 8650T$="Finished Loading. Press any key to start.":PRINTTAB(40-LENT$DIV2,13);T$
+ 8660*FX 15
+ 8670REPEAT:MOUSEX%,Y%,Z%:UNTILZ%<>0ORINKEY$(0)<>""
+ 8680REPEAT:MOUSEX%,Y%,Z%:UNTILZ%=0
+ 8690*FX 15
+ 8700DEFPROCnicedisplay
+ 8710GCOL0:RECTANGLEFILL0,456,1279,1023-456
+ 8720COLOUR128:COLOUR7
+ 8730T$="Wire Cutter":PRINTTAB(40-LENT$DIV2,1);T$
+ 8740GCOL7:RECTANGLE0,512,1279,511
+ 8750T$="by Jonathan Newcomb and Thomas Newcomb for":PRINTTAB(40-LENT$DIV2,3);T$
+ 8760RECTANGLE208,1024-16,1280-16-400,-64
+ 8770GCOL7:RECTANGLEFILL28,856,1224,-144
+ 8780GCOL11:RECTANGLEFILL28,856,1216,-136
+ 8790GCOL12:RECTANGLEFILL36,848,1208,-128
+ 8800GCOL0
+ 8810VDU23,17,7,6,32;24;0,0
+ 8820T$="Liverpool College"
+ 8830MOVE640-32*LENT$,784+40
+ 8840PRINTCHR$5;T$;CHR$4;
+ 8850VDU23,17,7,6,8;8;0,0
+ 8860ENDPROC
+ 8870
+ 8880DEFPROCassemble
+ 8890LOCALQ%
+ 8900L%=400
+ 8910DIMMC%L%:L%+=MC%
+ 8920FORQ%=8TO10STEP2
+ 8930P%=MC%
+ 8940[OPT Q%
+ 8950; R3=(-xgraph/grid%-INT(-xgraph/grid%))*grid%*zoom% <<8
+ 8960; R4=(-ygraph/grid%-INT(-ygraph/grid%))*grid%*zoom% <<8
+ 8970; R5=1/600*1215 <<8
+ 8980; R6=zoom%*grid% <<8
+ 8990.drawgrid     STMFD   R13!,{R14}
+ 9000              MOV     R7,#514AND255
+ 9010              ORR     R7,R7,#514ANDNOT255
+ 9020              SWI     &100+18
+ 9030              SWI     &100+0
+ 9040              SWI     &100+7
+ 9050              MOV     R8,R3
+ 9060              CMP     R8,#600*256
+ 9070              LDMHIFD R13!,{PC}^
+ 9080.xwhile       MOV     R9,R4
+ 9090              CMP     R9,#250*256
+ 9100              BHI     endywhile
+ 9110.ywhile       MUL     R1,R8,R5
+ 9120              MOV     R1,R1,LSR#16
+ 9130              ADD     R1,R1,#64
+ 9140              MUL     R2,R9,R5
+ 9150              MOV     R2,R2,LSR#16
+ 9160              ADD     R2,R2,R7
+ 9170              MOV     R0,#69
+ 9180              SWI     "OS_Plot"
+ 9190              ADD     R9,R9,R6
+ 9200              CMP     R9,#250*256
+ 9210              BLS     ywhile
+ 9220.endywhile    ADD     R8,R8,R6
+ 9230              CMP     R8,#600*256
+ 9240              BLS     xwhile
+ 9250              LDMFD   R13!,{PC}^
+ 9260
+ 9270.playsample   STMFD   R13!,{R14}
+ 9280              SWI     "XOS_EnterOS"
+ 9290              LDR     R6,writeadd
+ 9300              MOV     R7,#64+4
+ 9310              MOV     R8,#64+4+8
+ 9320.loop         LDRB    R0,[R1],#1
+ 9330              MOV     R4,#8
+ 9340.shiftloop    STRB    R7,[R6]
+ 9350              AND     R3,R0,#128
+ 9360              ORR     R5,R7,R3,LSR#7
+ 9370              STRB    R5,[R6]
+ 9380              ORR     R5,R5,#2
+ 9390              LDR     R10,[R1]
+ 9400              LDR     R10,[R1]
+ 9410              LDR     R10,[R1]
+ 9420              LDR     R10,[R1]
+ 9430              STRB    R5,[R6]
+ 9440              MOV     R0,R0,LSL#1
+ 9450              SUBS    R4,R4,#1
+ 9460              BNE     shiftloop
+ 9470              LDR     R10,[R1]
+ 9480              LDR     R10,[R1]
+ 9490              LDR     R10,[R1]
+ 9500              LDR     R10,[R1]
+ 9510              LDR     R10,[R1]
+ 9520              LDR     R10,[R1]
+ 9530              STRB    R8,[R6]
+ 9540              STRB    R7,[R6]
+ 9550              CMP     R1,R2
+ 9560              BNE     loop
+ 9570              TEQP    PC,#0
+ 9580              LDMFD   R13!,{PC}^
+ 9590
+ 9600.writeadd     EQUD    &3350010
+ 9610
+ 9620]:NEXT
+ 9630ENDPROC
+ 9640
+ 9650DEFPROCcalldrawgrid
+ 9660LOCALD%,E%,F%,G%
+ 9670D%=((-xgraph/grid%-INT(-xgraph/grid%))*grid%*zoom%)*256
+ 9680E%=((-ygraph/grid%-INT(-ygraph/grid%))*grid%*zoom%)*256:F%=(1/600*1215)*256:G%=(zoom%*grid%)*256
+ 9690CALLdrawgrid
+ 9700ENDPROC
+ 9710
+ 9720DEFPROCenterundo(type$,position%,x,y,nx,ny)
+ 9730undo$(undopos%)=type$
+ 9740undo(undopos%,0)=position%
+ 9750undo(undopos%,1)=x
+ 9760undo(undopos%,2)=y
+ 9770undo(undopos%,3)=nx
+ 9780undo(undopos%,4)=ny
+ 9790undopos%=(undopos%+1)MOD(undosize%+1)
+ 9800undo$(undopos%)=""
+ 9810ENDPROC
+ 9820
+ 9830DEFPROCundo
+ 9840undopos%=(undopos%+undosize%)MOD(undosize%+1)
+ 9850IFundo$(undopos%)<>""THEN
+ 9860CASEundo$(undopos%)OF
+ 9870WHEN"Add":PROCdodeletepoint(undo(undopos%,0),TRUE):editpoint%=undo(undopos%,0)-1
+ 9880WHEN"Delete":PROCdoaddnode(undo(undopos%,0)-1,undo(undopos%,1),undo(undopos%,2),TRUE):editpoint%=undo(undopos%,0)
+ 9890WHEN"Move":PROCdomoveapoint(undo(undopos%,0),undo(undopos%,1),undo(undopos%,2)):editpoint%=undo(undopos%,0)
+ 9900WHEN"MegaMoveEdge"
+ 9910undopos%=(undopos%+undosize%)MOD(undosize%+1)
+ 9920  WHILEundo$(undopos%)="MegaMove"
+ 9930  PROCdomoveapoint(undo(undopos%,0),undo(undopos%,1),undo(undopos%,2))
+ 9940undopos%=(undopos%+undosize%)MOD(undosize%+1)
+ 9950 ENDWHILE
+ 9960 IFundo$(undopos%)<>"MegaMoveEdge"THENundopos%=(undopos%+1)MOD(undosize%+1)
+ 9970ENDCASE
+ 9980IFeditpoint%>nodes%-1THENeditpoint%=nodes%-1
+ 9990PROCdrawgrid:PROCshowedit
+10000ELSEundopos%=(undopos%+1)MOD(undosize%+1):VDU7
+10010ENDIF
+10020ENDPROC
+10030
+10040DEFPROCredo
+10050IFundo$(undopos%)<>""THEN
+10060CASEundo$(undopos%)OF
+10070WHEN"Add":PROCdoaddnode(undo(undopos%,0)-1,undo(undopos%,1),undo(undopos%,2),TRUE):editpoint%=undo(undopos%,0)
+10080
+10090WHEN"Delete":PROCdodeletepoint(undo(undopos%,0),TRUE):editpoint%=undo(undopos%,0)-1
+10100WHEN"Move":PROCdomoveapoint(undo(undopos%,0),undo(undopos%,3),undo(undopos%,4)):editpoint%=undo(undopos%,0)
+10110WHEN"MegaMoveEdge"
+10120 undopos%=(undopos%+1)MOD(undosize%+1)
+10130 WHILEundo$(undopos%)="MegaMove"
+10140  PROCdomoveapoint(undo(undopos%,0),undo(undopos%,3),undo(undopos%,4))
+10150  undopos%=(undopos%+1)MOD(undosize%+1)
+10160 ENDWHILE
+10170 IFundo$(undopos%)<>"MegaMoveEdge"THENundopos%=(undopos%+undosize%)MOD(undosize%+1)
+10180ENDCASE
+10190ENDCASE
+10200undopos%=(undopos%+1)MOD(undosize%+1)
+10210IFeditpoint%>nodes%-1THENeditpoint%=nodes%-1
+10220PROCdrawgrid:PROCshowedit
+10230ELSEVDU7
+10240ENDIF
+10250ENDPROC
+10260
+10270DEFPROCclearundobuffer
+10280undopos%=0
+10290undo$()=""
+10300undo()=0
+10310ENDPROC
+10320
+10330DEFFNtimings
+10340LOCALN%,t%,x%,y%
+10350t%=0
+10360FORN%=0TOnodes%-2
+10370x%=ABS(nodes(N%+1,0)-nodes(N%,0)):y%=ABS(nodes(N%+1,1)-nodes(N%,1))
+10380IFx%>y%THENt%+=x%ELSEt%+=y%
+10390NEXT
+10400=INT(t%*spmm/60+.5)
+10410
+10420DEFPROCtogglegrid
+10430showgrid%=NOTshowgrid%:PRINTTAB(29,21);FNonoroff(showgrid%):PROCdrawgrid
+10440ENDPROC
+10450
+10460DEFPROCtogglesnap
+10470snap%=NOTsnap%:PRINTTAB(29,20);FNonoroff(snap%)
+10480ENDPROC
+10490
+10500DEFPROCtogglespeach
+10510speach%=NOTspeach%:PRINTTAB(50,22);FNonoroff(speach%)
+10520ENDPROC
+10530
+10540DEFPROCleaving
+10550   PROCtexton
+10560   CLS:PRINT"Goodbye!"
+10570   SYS"PP_ShiftOut32",&0AA00080
+10580   *FX11 30
+10590   *FX4
+10600   PROCRC
+10610   END
+10620ENDPROC
+10630
+10640DEFPROCtypepoint
+10650LOCALc$
+10660c$="Something"
+10670WHILEc$<>""
+10680PROCtexton:CLS:OH$="AddPoint"
+10690SYS"OS_PrettyPrint","Editing point: "+STR$editpoint%+". Enter in the coordinates of the point you wish to add. Type in the x coordinate first, separated from the y coordinate by a comma. Enter blank line or press ESCAPE to exit."+CHR$13
+10700quit%=2:MOUSEOFF
+10710INPUTLINE""c$
+10720quit%=0:MOUSEON
+10730*FX15
+10740IFc$<>""THEN
+10750IFINSTR(c$,",")=0THEN
+10760 ERROR1,"There was no comma."
+10770ELSE
+10780 nx=VALLEFT$(c$,INSTR(c$,",")-1):ny=VALMID$(c$,INSTR(c$,",")+1)
+10790 IFnx<0ORny<0ORny>600ORny>250THEN
+10800  ERROR1,"Those coordinates were out of range."
+10810 ELSE
+10820  CLS:PROChelp("")
+10830  PROCdoaddnode(editpoint%,nx,ny,FALSE)
+10840  PROCenterundo("Add",editpoint%,nx,ny,0,0)
+10850 ENDIF
+10860ENDIF
+10870ELSECLS:PROChelp("")
+10880ENDIF
+10890ENDWHILE
+10900PROCwindowoff
+10910ENDPROC
+10920
+10930DEFPROCstarcommands
+10940LOCALc$
+10950PROCtexton:CLS:OH$="*"
+10960SYS"OS_PrettyPrint","You can now enter star commands. Enter a empty line or press ESCAPE to stop. BEWARE! Miss-use may crash the program!!!"+CHR$13
+10970quit%=2
+10980PROCRC
+10990MOUSEOFF
+11000REPEAT
+11010INPUT"*"c$
+11020IFc$<>""THENOSCLIc$
+11030UNTILc$=""
+11040SYS"OS_RemoveCursors"
+11050quit%=0:MOUSEON:*FX 15
+11060PROChelp("")
+11070ENDPROC
+11080
+11090DEFPROChelpsummary
+11100quit%=2:MOUSEOFF
+11110GCOL0:RECTANGLEFILL0,456,1279,1023-456
+11120COLOUR128:COLOUR7
+11130VDU30
+11140PRINT"Keys"," "," ","Press any key to resume."'"----"
+11150PRINT"ARROW    Moves editing point towards start of path."
+11160PRINT"ARROW    Moves editing point towards end of path."
+11170PRINT"          Hold down CTRL too to move right to the end or start of the path."
+11180PRINT"DELETE   Deletes editing point (shown in red)."
+11190PRINT"U,R      Undo, Redo."
+11200PRINT"G        Grid on/off."
+11210PRINT"S        Snap on/off."
+11220PRINT"C        Catologue."
+11230PRINT"H        This help page."
+11240PRINT"RETURN   Add a point into the path on the white line by entering coordinates."
+11250PRINT"*        Enter star commands."
+11260PRINT"SPACE    Show logo page."
+11270PRINT"T        Transform a selection of points by using an equation."
+11280PRINT"#        Saves current set up."
+11290PRINT"ESCAPE   Quits current operation, or quits program (after confirmation)."
+11300REPEATUNTILINKEY(0)<>-1:PROCdrawgraph
+11310*FX 15
+11320quit%=0:MOUSEON
+11330ENDPROC
+11340
+11350DEFPROCtransform
+11360LOCALc$,x,y,X,Y,f1%,f2%,N%
+11370PROCtexton:OH$="Transform"
+11380CLS:SYS"OS_PrettyPrint","Enter point(s) to transform, eg ""5"", ""14-20"""+CHR$13+"Your shape consists of "+STR$(nodes%-1)+" point(s)."+CHR$13
+11390PROCRC
+11400quit%=2:MOUSEOFF
+11410INPUTLINE""c$
+11420SYS"OS_RemoveCursors"
+11430IFc$<>""THEN
+11440 IFINSTR(c$,"-")=0THEN
+11450  f1%=VALc$:f2%=f1%
+11460 ELSE
+11470  f1%=VALLEFT$(c$,INSTR(c$,"-")-1):f2%=VALMID$(c$,INSTR(c$,"-")+1)
+11480  IFf1%>f2%THENSWAPf1%,f2%
+11490 ENDIF
+11500 IFf1%=0ANDf2%=0THENERROR1,"First point cannot be moved."
+11510 IFf1%>nodes%-1ANDf2%>nodes%-1THENERROR1,"Point selection was out of range."
+11520 IFf1%<1THENf1%=1
+11530 IFf2%>nodes%-1THENf2%=nodes%-1
+11540 CLS
+11550 SYS"OS_PrettyPrint","Enter equations, eg to flip about line y=x and double size, enter x=y*2 and y=x*2"+CHR$13
+11560 INPUT"x="x$
+11570 INPUT"y="y$
+11580 FORN%=f1%TOf2%
+11590  x=nodes(N%,0):y=nodes(N%,1):X=x:Y=y
+11600  IFEVALx$<0OREVALx$>600OREVALy$<0OREVALy$>250THENERROR1,"Some points would be moved off the graph by that transformation."
+11610 NEXT
+11620 PROCenterundo("MegaMoveEdge",0,0,0,0,0)
+11630 FORN%=f1%TOf2%
+11640  x=nodes(N%,0):y=nodes(N%,1):X=x:Y=y
+11650  PROCenterundo("MegaMove",N%,nodes(N%,0),nodes(N%,1),EVALx$,EVALy$)
+11660  nodes(N%,0)=EVALx$:nodes(N%,1)=EVALy$
+11670 NEXT
+11680 PROCenterundo("MegaMoveEdge",0,0,0,0,0)
+11690ENDIF
+11700quit%=0:MOUSEON:*FX 15
+11710CLS:PROChelp("")
+11720PROCwindowoff
+11730PROCdrawgrid
+11740ENDPROC
+11750
+11760DEFPROCshowedit
+11770PROChelp("Editing point "+STR$editpoint%+" at ("+LEFT$(STR$nodes(editpoint%,0),6)+","+LEFT$(STR$nodes(editpoint%,1),6)+")")
+11780ENDPROC
+11790
+11800DEFPROCplaysample(S$,help%)
+11810LOCALB%,C%
+11820C%=0
+11830CASES$OF
+11840WHEN"Please":PROChelp("Please clear obstructions from the cutting bed and press any key to return the wire to the start position."):IFspeach%THENC%=84224:B%=0
+11850WHEN"Insert":PROChelp("Insert the foam and press any key to start the cutting cycle."):IFspeach%THENC%=43008:B%=84224
+11860WHEN"Wire"
+11870 PROChelp("Please note: the wire is still hot. Wait for the red light to go out before you remove your work.")
+11880 IFspeach%THENC%=88832:B%=84224+43008ELSEVDU7
+11890OTHERWISEERROR1,"Internal error: non-existant sample requested"
+11900ENDCASE
+11910IFC%THEN
+11920B%+=sa%
+11930C%+=B%
+11940SYS"PP_ShiftOut32",FNtemptosend(normtemp%)+15+(1<<5)
+11950CALLplaysample
+11960PROCout32
+11970ENDIF
+11980ENDPROC
+11990
+12000DEFPROCloadsamples
+12010OSCLI"Load <WireCut$Dir>.Please "+STR$~(sa%)
+12020OSCLI"Load <WireCut$Dir>.Insert "+STR$~(sa%+84224)
+12030OSCLI"Load <WireCut$Dir>.Wire "+STR$~(sa%+84224+43008)
+12040ENDPROC
+12050
+12060DEFPROCsavesetup
+12070PROCtexton:CLS:MOUSEOFF:OH$="SaveSetUp":quit%=2
+12080SYS"OS_PrettyPrint","Do you wish to save the current set up (Y/N) ?"
+12090REPEATA$=INKEY$(0):UNTILA$<>""
+12100IFA$="y"ORA$="Y"THENPROCdosavesetup
+12110CLS:PROCwindowoff:MOUSEON:quit%=0:PROChelp("")
+12120ENDPROC
+12130
+12140DEFPROCdosavesetup
+12150F%=OPENOUT"<WireCut$Dir>.SetUp"
+12160BPUT#F%,zoom%
+12170PRINT#F%,xgraph
+12180PRINT#F%,ygraph
+12190BPUT#F%,grid%
+12200BPUT#F%,snap%
+12210BPUT#F%,showgrid%
+12220BPUT#F%,cuttemp%
+12230BPUT#F%,normtemp%
+12240BPUT#F%,disabled%
+12250BPUT#F%,speach%
+12260BPUT#F%,disc%
+12270CLOSE#F%
+12280ENDPROC
+12290
+12300DEFPROCloadsetup
+12310F%=OPENIN"<WireCut$Dir>.SetUp"
+12320IFF%<>0THEN
+12330 zoom%=BGET#F%
+12340 INPUT#F%,xgraph
+12350 INPUT#F%,ygraph
+12360 grid%=BGET#F%
+12370 snap%=-BGET#F%/255
+12380 showgrid%=-BGET#F%/255
+12390 cuttemp%=BGET#F%
+12400 normtemp%=BGET#F%
+12410 disabled%=BGET#F%
+12420 speach%=-BGET#F%/255
+12430 disc%=BGET#F%
+12440 CLOSE#F%
+12450ENDIF
+12460ENDPROC
+12470
+12480DEFPROCnearest
+12490nx=(nx+grid%/2)DIVgrid%*grid%:ny=(ny+grid%/2)DIVgrid%*grid%
+12500IFnx>600THENnx-=grid%
+12510IFny>250THENny-=grid%
+12520ENDPROC
+12530
+12540DEFPROCprintdisctype
+12550COLOUR128+4:COLOUR7
+12560PRINTTAB(66,18);FNfillup(13," ","("+discs$(disc%,0)+")")
+12570COLOUR128
+12580ENDPROC
+12590
+12600DEFPROCchangedisc
+12610LOCALX%,Y%,Z%
+12620disc%+=1:IFdisc%=discs%THENdisc%=0
+12630PROCprintdisctype
+12640REPEATMOUSEX%,Y%,Z%:UNTILZ%=0
+12650ENDPROC
+12660
+12670DEFFNconvertfilename(X$)
+12680IFINSTR(X$,":")THEN=X$
+12690=discs$(disc%,1)+"."+X$
+12700

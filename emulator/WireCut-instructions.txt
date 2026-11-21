@@ -1,0 +1,42 @@
+Wire Cutter in Archimedes Live
+
+Archive: WireCut-original.zip
+This is the complete original !WireCut.zip supplied by Thomas Newcomb,
+unchanged. It contains the tokenised BASIC program, PrinterPort module,
+shapes, audio, saved settings, icon, launcher and original help file.
+
+Emulator:
+https://archi.medes.live/#preset=a3000
+
+1. Download the ZIP from The Acorn Archive. Keep it zipped.
+2. Open the emulator link above (A3000 with RISC OS 3).
+3. Drag the ZIP onto the emulator, or use Load Software to upload it.
+4. Choose Unpack to HostFS if prompted.
+5. Open HostFS from the RISC OS desktop, then double-click !WireCut.
+   Its launcher loads the included PrinterPort module and runs !RunImage.
+6. The original title screen asks for a key or mouse click to continue.
+   The program's own help is available with Shift or H.
+
+Compatibility has not yet been verified by running this package in the
+browser emulator. The original program writes directly to the printer
+port. Archimedes emulation does not reproduce Jonathan's cutter circuit;
+homing or cutting may wait for feedback which the emulator cannot supply.
+The recorded prompts also use that external circuit, not the normal VIDC
+sound interface. Use the archive's audio page for the recordings.
+
+For emulator mouse/keyboard help:
+https://github.com/pdjstone/archimedes-live#mousekeyboard-shortcuts
+
+Direct loading from a link:
+The emulator supports preset, disc and autoboot URL-fragment options.
+The disc URL must be fetchable without this site's sign-in, and cross-
+origin hosting must permit CORS. Use the download-and-upload workflow until direct URL loading has been
+verified on the public host.
+No passwords or access tokens should be placed in the emulator link.
+
+Menubu:
+Only the BASIC listing has been supplied. It also needs its external SD
+module and database files to run as the original application.
+
+Documentation:
+https://github.com/pdjstone/archimedes-live#supported-url-options

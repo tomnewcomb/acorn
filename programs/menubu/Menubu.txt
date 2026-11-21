@@ -1,0 +1,894 @@
+   10REM>Menu
+   20REM                  Newsagent  Management
+   30REM
+   40REM                             By David Newcomb
+   50REM
+   60REM
+   70REM
+   80REM****************** Main Progam ****************************************
+   90PROCsetvars
+  100REPEAT
+  110PROCmenu("Main Menu","Amend","Bills","Deliveries","Quit","")
+  120CASE O% OF
+  130WHEN 1 :PROCam_me
+  140WHEN 2 :PROCbi_me
+  150WHEN 3 :PROCde_me
+  160WHEN 4 :FINISH=TRUE
+  170ENDCASE
+  180OFF
+  190UNTIL(FINISH=TRUE)
+  195*FX200,0
+  200CLS:PRINT"Thankyou for using Newsagent Management"
+  210END
+  220REM********************** End of main program ****************************
+  230 
+  240 
+  250 
+  260 
+  270REM********************** Start of procedures and functions **************
+  280REM********************** Display menu ***********************************
+  290DEF PROCmenu(title$,first$,second$,third$,fourth$,fifth$)
+  300MODE12
+  310PROCcentre(title$)
+  320VDU31,0,10
+  330PROCcentre(first$)
+  340PROCcentre(second$)
+  350PROCcentre(third$)
+  360PROCcentre(fourth$)
+  370PROCcentre(fifth$)
+  380*SD03 "Use arrow keys to select option"
+  390VDU31,0,10
+  400REM********************** Set up moving red bar **************************
+  410IFfifth$=""THEN
+  420l$="1234"
+  430ELSE
+  440l$="12345"
+  450ENDIF
+  460*SD10 1 l$
+  470ENDPROC
+  480 
+  490 
+  500 
+  510 
+  520 
+  530REM********************** Display string in centre of screen *************
+  540DEF PROCcentre(display$)
+  550length=LEN(display$)
+  560display$=STRING$((80-length)/2," ")+display$
+  570PRINT display$
+  580ENDPROC
+  590 
+  600 
+  610 
+  620 
+  630 
+  640REM********************** Set up the variables for the program ***********
+  650DEF PROCsetvars
+  655*FX200,3
+  660*SDRESET
+  670SYS &80301 TO sd%
+  680MODE12
+  690FINISH=FALSE
+  700DEL=FALSE
+  710FIRST=TRUE
+  720B$="N"
+  730OFF
+  740REPEAT
+  750INPUT"What is the day? (dd)"dd
+  760INPUT"What is the month? (mm)"mm
+  770INPUT"What is the year? (yy)"yy
+  780UNTIL (dd>0) AND (dd<32) AND (mm>0) AND (mm<13) AND (yy>=0) AND (yy<=99)
+  790REPEAT
+  800INPUT"Is today a Sunday? (Y/N)"S$
+  810UNTILINSTR("YyNn",S$)
+  820IFINSTR("Yy",S$)THENsun%=1ELSEsun%=0
+  830ENDPROC
+  840 
+  850 
+  860 
+  870 
+  880 
+  890REM********************** Print bill menu and accept a response **********
+  900DEF PROCbi_me
+  910REPEAT
+  920PROCmenu("Bill Menu","Writing Bills","Calculating Bills","Receiving Bills","Main Menu","")
+  930CASE O% OF
+  940WHEN 1 :PROCwrite
+  950WHEN 2 :PROCcalc
+  960WHEN 3 :PROCrecei
+  970WHEN 4 :ENDPROC
+  980ENDCASE
+  990UNTIL(O%=4)
+ 1000ENDPROC
+ 1010 
+ 1020 
+ 1030 
+ 1040 
+ 1050 
+ 1060REM********************** Print amend menu and accept a response *********
+ 1070DEF PROCam_me
+ 1080REPEAT
+ 1090PROCmenu("Amend Menu","Set Status","Change Order","Change Bills","Holidays","Main Menu")
+ 1100CASE O% OF
+ 1110WHEN 1 :PROCastatus
+ 1120WHEN 2 :PROCaorder
+ 1130WHEN 3 :PROCabill
+ 1140WHEN 4 :PROCahols
+ 1150WHEN 5 :ENDPROC
+ 1160ENDCASE
+ 1170UNTIL(O%=5)
+ 1180ENDPROC
+ 1190 
+ 1200 
+ 1210 
+ 1220 
+ 1230 
+ 1240REM********************** Setting the status to :- ***********************
+ 1250DEF PROCastatus
+ 1260MODE12
+ 1270*SD03 "Setting status..."
+ 1280OFF
+ 1290*SDOPEN Diary
+ 1300*SDGREC 0
+ 1310REPEAT
+ 1320*SDNEXT Diary
+ 1330DN%=N%:DR%=R%
+ 1340REM********************** Home *****************************************
+ 1350IF dd=FNgetfield("stda") AND mm=FNgetfield("stmo") AND yy=FNgetfield("stye") THEN
+ 1360custnu$=FNgetfieldst("cus#")
+ 1370*SDOPEN Customer
+ 1380*SDSELECTKEY cus#
+ 1390*SDFIND custnu$ Customer
+ 1400*SDSELECTKEY ?
+ 1410*SDGFIELD stat Customer
+ 1420$sd%="a"
+ 1430*SDPFIELD stat Customer
+ 1440*SDCLOSE Customer
+ 1450ENDIF
+ 1460 
+ 1470REM********************** Away *****************************************
+ 1480 
+ 1490IF dd=FNgetfield("enda") AND mm=FNgetfield("enmo") AND yy=FNgetfield("enye") THEN
+ 1500custnu$=FNgetfieldst("cus#")
+ 1510*SDDELREC
+ 1520*SDOPEN Customer
+ 1530*SDSELECTKEY cus#
+ 1540*SDFIND custnu$ Customer
+ 1550*SDSELECTKEY ?
+ 1560*SDGFIELD stat Customer
+ 1570$sd%="h"
+ 1580*SDPFIELD stat Customer
+ 1590*SDCLOSE Customer
+ 1600ENDIF
+ 1610 
+ 1620REM********************** Cancel ***************************************
+ 1630 
+ 1640IF dd=FNgetfield("cada") AND mm=FNgetfield("camo") AND yy=FNgetfield("caye") THEN
+ 1650custnu$=FNgetfieldst("cus#")
+ 1660*SDDELREC
+ 1670*SDOPEN Customer
+ 1680*SDSELECTKEY cus#
+ 1690*SDFIND custnu$ Customer
+ 1700*SDSELECTKEY ?
+ 1710*SDDELREC
+ 1720*SDCLOSE Customer
+ 1730*SDOPEN Paper
+ 1740*SDFIND custnu$ Paper
+ 1750*SDDELREC
+ 1760*SDCLOSE Paper
+ 1770ENDIF
+ 1780UNTIL (DN%>DR%)
+ 1790*SDCLOSE Diary
+ 1800ENDPROC
+ 1810 
+ 1820 
+ 1830 
+ 1840 
+ 1850 
+ 1860 
+ 1870REM********************** Holiday ****************************************
+ 1880DEF PROCahols
+ 1890REPEAT
+ 1900MODE12
+ 1905REM*********************** Find customer's card ************************
+ 1910PRINT"Press <Return> to go back to the main menu"
+ 1920INPUT"Who is going on holiday? <addr.>"AD$
+ 1930IFAD$=""THEN ENDPROC
+ 1940*SDOPEN Customer
+ 1950*SD45 Noerrors
+ 1960*SDSELECTKEY addr
+ 1970*SDFIND AD$
+ 1980*SDSELECTKEY ?
+ 1990REM********************* Trap errors ***********************************
+ 2000IFG%=255 THEN PROCerror("Customer"):ENDPROC
+ 2010cusno%=FNgetfield("cus#")
+ 2020cusno$=STR$(cusno%)
+ 2030*SDCLOSE Customer
+ 2040*SDOPEN Diary
+ 2050*SDADD
+ 2060*SDGFIELD cus#
+ 2070$sd%=cusno$
+ 2080*SDPFIELD
+ 2090*SD46 1
+ 2100REM********************** Allow the user to write to the record ********
+ 2110FORI%=2TO7
+ 2120*SDEDFIELD I%
+ 2130NEXT
+ 2140*SD09
+ 2150REPEAT
+ 2160IFG%=78 THEN
+ 2170FORI%=2TO7
+ 2180*SDEDFIELD I%
+ 2190NEXT
+ 2200ENDIF
+ 2210*SD09
+ 2220UNTIL(G%=89)
+ 2230*SD46 ALL
+ 2240*SDCLOSE Diary
+ 2250ENDPROC
+ 2260 
+ 2270 
+ 2280 
+ 2290 
+ 2300 
+ 2310REM********************* Reads $sd% and sends it back as an integer*****
+ 2320DEF FNgetfield(F$)
+ 2330*SDGFIELD F$
+ 2340*SDSTRIP
+ 2350=VAL($sd%)
+ 2360ENDPROC
+ 2370 
+ 2380 
+ 2390 
+ 2400 
+ 2410 
+ 2420REM********************* Reads $sd% and sends it back as a string ******
+ 2430DEF FNgetfieldst(F$)
+ 2440*SDGFIELD F$
+ 2450*SDSTRIP
+ 2460=($sd%)
+ 2470ENDPROC
+ 2480 
+ 2490 
+ 2500 
+ 2510 
+ 2520 
+ 2530REM********************* Writting bills********************************
+ 2540DEF PROCwrite
+ 2550*SDOPEN Customer
+ 2560*SDGREC 0
+ 2570VDU2
+ 2580REPEAT
+ 2590*SDNEXT
+ 2600*SDGFIELD cus#
+ 2610*SDSTRIP
+ 2620REM*************** Print on paper the bill **************************
+ 2630PRINT"Your customer number is ..."$sd%
+ 2640*SDGFIELD cust
+ 2650PRINT"Name......................."$sd%
+ 2660*SDGFIELD addr
+ 2670PRINT"Address...................."$sd%
+ 2680day=FNgetfield("lpda")
+ 2690mon=FNgetfield("lpmo")
+ 2700yea=FNgetfield("lpye")
+ 2710PRINT"The date you last paid.....";day"/";mon"/";yea
+ 2720PRINT"You now owe...............$";FNgetfield("bale")
+ 2730PRINT"==============================================================================="
+ 2740REM********** Until the end of the file*******************************
+ 2750UNTIL(N%=R%)
+ 2760VDU3
+ 2770*SDCLOSE Customer
+ 2780PRINT"Press any key...":REPEAT:UNTIL GET
+ 2790ENDPROC
+ 2800 
+ 2810 
+ 2820 
+ 2830 
+ 2840 
+ 2850REM******************* Calculate bills ******************************
+ 2860DEF PROCcalc
+ 2870REPEAT
+ 2880MODE12
+ 2890REM******************* Prints bill sub-menu *************************
+ 2900PROCcentre("Calculate Bills")
+ 2910VDU31,0,10
+ 2920PROCcentre("Calculate weekly bills <on Sundays>")
+ 2930PROCcentre("Calculate monthly bills <on the 1st>")
+ 2940PROCcentre("Back to bill menu")
+ 2950*SD03 "Use arrow keys to select option"
+ 2960VDU31,0,10
+ 2970CB$="123"
+ 2980REM******************* Collects response ****************************
+ 2990IFO%=1THEN
+ 3000MODE12
+ 3010*SD03 "Calculating weekly bills..."
+ 3020OFF
+ 3030*SDOPEN Customer
+ 3040*SDGREC 0
+ 3050REPEAT
+ 3060*SDNEXT
+ 3070REM******************* Calculating weekly bills ******************
+ 3080balold=FNgetfield("bale")
+ 3090weekb=FNgetfield("wbil")
+ 3100weekc=FNgetfield("wech")
+ 3110newbil=balold+weekb+weekc
+ 3120*SDGFIELD bale
+ 3130$sd%=STR$(newbil)
+ 3140*SDPFIELD
+ 3150UNTIL(N%=R%)
+ 3160*SDCLOSE
+ 3170ENDIF
+ 3180IFO%=2THEN
+ 3190MODE12
+ 3200*SD03 "Calculating monthly bills..."
+ 3210OFF
+ 3220*SDOPEN Customer
+ 3230*SDGREC 0
+ 3240REPEAT
+ 3250*SDNEXT
+ 3260REM*************** Calculating monthly bills ********************
+ 3270balold=FNgetfield("bale")
+ 3280month=FNgetfield("mbil")
+ 3290newbil=balold+month
+ 3300*SDGFIELD bale
+ 3310$sd%=STR$(newbil)
+ 3320*SDPFIELD
+ 3330UNTIL(N%=R%)
+ 3340*SDCLOSE
+ 3350ENDIF
+ 3360IFO%=3THENENDPROC
+ 3370UNTIL(O%=3)
+ 3380ENDPROC
+ 3390 
+ 3400 
+ 3410 
+ 3420 
+ 3430 
+ 3440REM************************ Amend a bill ************************
+ 3450DEF PROCabill
+ 3460CLS
+ 3470PRINT"Enter address or customer number. Press M for menu"
+ 3480PRINT"Are you entering the (N)umber or (A)ddress"
+ 3490REPEAT
+ 3500NA$=GET$
+ 3510UNTILINSTR("NnAaMm",NA$)
+ 3520IFINSTR("Mm",NA$)THEN ENDPROC
+ 3530*SDOPEN Customer
+ 3540*SD45 Noerrors
+ 3550REM****************** Find card using customer number ******************
+ 3560IFINSTR("Nn",NA$)THEN
+ 3570PRINT:PRINT"Including preceeding zeros"
+ 3580INPUT"What is the customer's number :"NU$
+ 3590*SDSELECTKEY cus#
+ 3600*SDFIND NU$
+ 3610*SDGFIELD stat
+ 3620IF$sd%="m"THENPROCerror("Customer"):ENDPROC
+ 3625REM********************* Trap errors ********************************
+ 3630IFG%=255THENPROCerror("Customer"):ENDPROC
+ 3640*SDSELECTKEY ?
+ 3650ENDIF
+ 3660REM******************** Find card using customer address *************
+ 3670IFINSTR("Aa",NA$)THEN
+ 3680PRINT
+ 3690INPUT"What is the customer's address :"NU$
+ 3700*SDSELECTKEY addr
+ 3710*SDFIND NU$
+ 3720*SDGFIELD stat
+ 3730IF$sd%="m"THENPROCerror("Customer"):ENDPROC
+ 3740IFG%=255THENPROCerror("Customer"):ENDPROC
+ 3750*SDSELECTKEY ?
+ 3760ENDIF
+ 3770REM************* Print amend-bill's sub-menu *************************
+ 3780REPEAT
+ 3790MODE12
+ 3800PROCmenu("Which bill do you want to change?","Weekly bill","Monthly bill","Weekly charge","End","")
+ 3810MODE12
+ 3820PROCcentre("Changing Bills")
+ 3830CASE O% OF
+ 3840WHEN 1 :OSCLI("SD46 1"):OSCLI("SDEDFIELD wbil"):OSCLI("SD46 ALL")
+ 3850WHEN 2 :OSCLI("SD46 1"):OSCLI("SDEDFIELD mbil"):OSCLI("SD46 ALL")
+ 3860WHEN 3 :OSCLI("SD46 1"):OSCLI("SDEDFIELD wech"):OSCLI("SD46 ALL")
+ 3870WHEN 4 :OSCLI("SDCLOSE Customer"):MODE12:ENDPROC
+ 3880ENDCASE
+ 3890UNTIL(O%=4)
+ 3900ENDPROC
+ 3910 
+ 3920 
+ 3930 
+ 3940 
+ 3950 
+ 3960REM************ Receive money and debt from account *****************
+ 3970DEF PROCrecei
+ 3980*SDOPEN Customer
+ 3990*SD45 Noerrors
+ 4000REPEAT
+ 4010CLS
+ 4020REM************* Find card by address *****************************
+ 4030PRINT"Press <Return> to go back to menu"
+ 4040INPUT"Who has paid?  (addr.) :"WP$
+ 4050IFWP$=""THEN
+ 4060*SDCLOSE Customer
+ 4070ENDPROC
+ 4080ENDIF
+ 4090REM************* Find out how much that person has paid ***********
+ 4100INPUT"How much have they paid?  $"WP
+ 4110*SDSELECTKEY addr
+ 4120*SDFIND WP$
+ 4130*SDSELECTKEY ?
+ 4140REM***************** Trap errors **********************************
+ 4150IFG%=255THENPROCerror("Customer"):ENDPROC
+ 4160oldbal=FNgetfield("bale")
+ 4170REM***************** Debt from account ****************************
+ 4180newbal=oldbal-WP
+ 4190$sd%=STR$(newbal)
+ 4200*SDPFIELD bale
+ 4210REM*************** Change date last paid **************************
+ 4220*SDGFIELD lpda Customer
+ 4230$sd%=STR$(dd)
+ 4240*SDPFIELD lpda Customer
+ 4250*SDGFIELD lpmo Customer
+ 4260$sd%=STR$(mm)
+ 4270*SDPFIELD lpmo Customer
+ 4280*SDGFIELD lpye Customer
+ 4290$sd%=STR$(yy)
+ 4300*SDPFIELD lpye Customer
+ 4310UNTIL FALSE
+ 4320*SDCLOSE Customer
+ 4330ENDPROC
+ 4340 
+ 4350 
+ 4360 
+ 4370 
+ 4380 
+ 4390REM************** Amending a customer order ************************
+ 4400DEF PROCaorder
+ 4410REPEAT
+ 4420MODE12
+ 4430REM************** Find card by address ****************************
+ 4440PRINT"Press <Return> for menu"
+ 4450INPUT"Whose order do you want to amend?  (addr.) :"AM$
+ 4460IFAM$=""THENENDPROC
+ 4470*SDOPEN Customer
+ 4480*SD45 Noerrors
+ 4490*SDFIND AM$ Customer
+ 4500IFG%=255THENPROCerror("Customer"):ENDPROC
+ 4510con$=FNgetfieldst("cus#")
+ 4520*SDCLOSE Customer
+ 4530*SDOPEN Paper
+ 4540*SDSELECTKEY cus# Paper
+ 4550*SDFIND con$ Paper
+ 4560*SDSELECTKEY ?
+ 4570REM************** Allow you to change order *************************
+ 4580FORI%=2TO7
+ 4590*SD46 1
+ 4600*SDEDFIELD I%
+ 4610*SD46 ALL
+ 4620*SDCLOSE ?
+ 4630UNTILFALSE
+ 4640ENDPROC
+ 4650 
+ 4660 
+ 4670 
+ 4680 
+ 4690 
+ 4700REM***************** Delivery menu and receiving a response *********
+ 4710DEF PROCde_me
+ 4720REPEAT
+ 4730PROCmenu("Delivery Menu","Print delivery round","Add a new customer","Delete a customer","Publication","Main Menu")
+ 4740CASE O% OF
+ 4750WHEN 1 :PROCprint
+ 4760WHEN 2 :PROCadd
+ 4770WHEN 3 :PROCdelete
+ 4780WHEN 4 :PROCpub_men
+ 4790WHEN 5 :ENDPROC
+ 4800ENDCASE
+ 4810UNTIL(O%=5)
+ 4820ENDPROC
+ 4830 
+ 4840 
+ 4850 
+ 4860 
+ 4870 
+ 4880REM**************** Print a delivery round *************************
+ 4890REM**************** This is in the form of a linked-list ***********
+ 4900DEF PROCprint
+ 4910CLS
+ 4915VDU2
+ 4920*SDOPEN Customer
+ 4930prev$="00000"
+ 4940REPEAT
+ 4950REPEAT
+ 4960REM************** Find first card in the list ********************
+ 4970*SDSELECTKEY prev
+ 4980*SDFIND prev$ Customer
+ 4990*SDSELECTKEY ?
+ 5000*SDGFIELD stat
+ 5010z$=$sd%
+ 5020next$=FNgetfieldst("next")
+ 5030REM**************** Check that they are home *********************
+ 5040REM************** If they are away the next in the list must *****
+ 5050REM************** be chosen **************************************
+ 5060IFINSTR("AaCc",z$)THEN
+ 5070prev$=FNgetfieldst("next")
+ 5080ENDIF
+ 5090UNTIL(INSTR("HhMm",z$))
+ 5100REPEAT
+ 5110IFFIRST=FALSE THEN
+ 5120REPEAT
+ 5130REM*********** Find the next card (i.e. when next=cus#) ******
+ 5140*SDSELECTKEY cus# Customer
+ 5150*SDFIND next$ Customer
+ 5160*SDSELECTKEY ?
+ 5170z$=FNgetfieldst("stat")
+ 5180IFINSTR("AaCc",z$)THEN
+ 5190next$=FNgetfieldst("next")
+ 5200ENDIF
+ 5210ENDIF
+ 5220REM********* Repeat until a valid card is found ****************
+ 5230UNTIL(INSTR("HhMm",z$))
+ 5240addr$=FNgetfieldst("addr")
+ 5250cus$=FNgetfieldst("cus#")
+ 5260*SDOPEN Paper
+ 5270REM************** Find the customer's paper requirement **********
+ 5280REM************** For a weekday **********************************
+ 5290*SDFIND cus$ Paper
+ 5300IFsun%=0THEN
+ 5310wek1$=FNgetfieldst("wek1")
+ 5320wek2$=FNgetfieldst("wek2")
+ 5330wek3$=FNgetfieldst("wek3")
+ 5340*SDOPEN Publi/n
+ 5350REM************** Find out what the tokens mean ****************
+ 5360*SDFIND wek1$
+ 5370one$=FNgetfieldst("puna")
+ 5380*SDFIND wek2$
+ 5390two$=FNgetfieldst("puna")
+ 5400*SDFIND wek3$
+ 5410three$=FNgetfieldst("puna")
+ 5420*SDCLOSE Publi/n
+ 5430ENDIF
+ 5440REM************** For a Sunday ***********************************
+ 5450IFsun%=1THEN
+ 5460sun1$=FNgetfieldst("sun1")
+ 5470sun2$=FNgetfieldst("sun2")
+ 5480sun3$=FNgetfieldst("sun3")
+ 5490*SDOPEN Publi/n
+ 5500REM********** Find out what the tokens mean ********************
+ 5510*SDFIND sun1$
+ 5520one$=FNgetfieldst("puna")
+ 5530*SDFIND sun2$
+ 5540two$=FNgetfieldst("puna")
+ 5550*SDFIND sun3$
+ 5560three$=FNgetfieldst("puna")
+ 5570*SDCLOSE Publi/n
+ 5580ENDIF
+ 5590*SDCLOSE Paper
+ 5600REM************** Print on paper the delivery order **************
+ 5610PRINTaddr$;" : ";one$;" : ";two$;" : ";three$
+ 5620*SDSELECTKEY next
+ 5630*SDGFIELD
+ 5640next$=FNgetfieldst("next")
+ 5650*SDSELECTKEY ?
+ 5660FIRST=FALSE
+ 5670UNTIL(next$="99999")
+ 5680*SDCLOSE Customer
+ 5685VDU3
+ 5690FIRST=TRUE
+ 5700PRINT"Press any key...":REPEAT:UNTILGET
+ 5710ENDPROC
+ 5720 
+ 5730 
+ 5740 
+ 5750 
+ 5760 
+ 5770REM*************** Add a new customer **************************
+ 5780DEF PROCadd
+ 5790CLS
+ 5800*SD09 "Add a new customer? (y/n)"
+ 5810IFG%=78 OR G%=110 ENDPROC
+ 5820*SDOPEN CUSTOMER
+ 5830*SDGREC R%
+ 5840oldcu%=FNgetfield("cus#")
+ 5850newcu%=oldcu%+1
+ 5860newcu$=STR$(newcu%)
+ 5870MODE12
+ 5880REM*************** Choose where you want to add the new ********
+ 5890REM*************** customer in the linked-list *****************
+ 5900PROCcentre("Choose the card after the card you want to add")
+ 5910*SD03 "< = Backwards   Spc = Select  Forwards = >                            Q = Quit"
+ 5920OFF
+ 5930*SDSELECTKEY cus#
+ 5940*SDFIND 00002
+ 5950*SDSELECTKEY ?
+ 5960REPEAT
+ 5970REPEAT
+ 5980A$=GET$
+ 5990IF (A$<>">") AND (A$<>"<") AND (A$<>",") AND (A$<>".") AND (A$<>"Q") AND (A$<>"q") THEN *SDBEEP
+ 6000UNTIL(INSTR("<>,. Qq",A$))
+ 6010REM*********** Move the cards forward one place in the list ******
+ 6020IFINSTR(".>",A$)THEN
+ 6030*SDGFIELD cus#
+ 6040old$=$sd%
+ 6050*SDGFIELD next
+ 6060next$=$sd%
+ 6070*SDSELECTKEY cus#
+ 6080*SDFIND next$
+ 6090*SDSELECTKEY ?
+ 6100stat$=FNgetfieldst("stat")
+ 6110IF((stat$="m") OR (stat$="M"))THEN
+ 6120*SDSELECTKEY cus#
+ 6130*SDFIND old$
+ 6140*SDSELECTKEY ?
+ 6150*SDVIEW
+ 6160*SDBEEP
+ 6170ENDIF
+ 6180*SDVIEW
+ 6190ENDIF
+ 6200REM*********** Move the cards backwards one place in the list ****
+ 6210IFINSTR(",<",A$)THEN
+ 6220*SDGFIELD cus#
+ 6230old$=$sd%
+ 6240*SDGFIELD prev
+ 6250pre$=$sd%
+ 6260*SDSELECTKEY cus#
+ 6270*SDFIND pre$
+ 6280*SDSELECTKEY ?
+ 6290stat$=FNgetfieldst("stat")
+ 6300IF((stat$="m") OR (stat$="M"))THEN
+ 6310*SDSELECTKEY cus#
+ 6320*SDFIND old$
+ 6330*SDSELECTKEY ?
+ 6340*SDVIEW
+ 6350*SDBEEP
+ 6360ENDIF
+ 6370*SDVIEW
+ 6380ENDIF
+ 6390REM****************** Quit this part of the procedure **********
+ 6400IFINSTR("Qq",A$)THEN
+ 6410*SDCLOSE ?
+ 6420ENDPROC
+ 6430ENDIF
+ 6440REM**************** Here is the place you want to add **********
+ 6450IFA$=" "THEN
+ 6460*SD09
+ 6470IFG%=89THENB$="Y"
+ 6480ENDIF
+ 6490UNTIL(B$="Y")
+ 6500B$="N"
+ 6510*SDGFIELD cus#
+ 6520REM***************** Re-arrange link-list's pointers ***********
+ 6530REM***************** Both forwards and backward ****************
+ 6540afcus$=$sd%
+ 6550*SDGFIELD prev
+ 6560afpre$=$sd%
+ 6570$sd%=newcu$
+ 6580*SDPFIELD
+ 6590*SDSELECTKEY cus#
+ 6600*SDFIND afpre$
+ 6610*SDSELECTKEY ?
+ 6620*SDGFIELD next
+ 6630b4nex$=$sd%
+ 6640$sd%=newcu$
+ 6650*SDPFIELD
+ 6660*SDGFIELD cus#
+ 6670b4cus$=$sd%
+ 6680REPEAT
+ 6690REM******************** Add a new card **************************
+ 6700*SDADD
+ 6710REM******************** Change the link-list information ********
+ 6720REM******************** Before the user can touch it ************
+ 6730*SDGFIELD next
+ 6740$sd%=afcus$
+ 6750*SDPFIELD
+ 6760*SDGFIELD prev
+ 6770$sd%=b4cus$
+ 6780*SDPFIELD
+ 6790*SDGFIELD cus#
+ 6800$sd%=newcu$
+ 6810*SDPFIELD
+ 6820*SDGFIELD bale
+ 6830$sd%="0"
+ 6840*SDPFIELD
+ 6850*SDGFIELD roun
+ 6860$sd%="7"
+ 6870*SDPFIELD
+ 6880FORI%=12TO14
+ 6890*SDGFIELD I%
+ 6900$sd%="0"
+ 6910*SDPFIELD
+ 6920NEXT
+ 6930REM******************** Allow the user to change parts **********
+ 6940REM******************** of the card *****************************
+ 6950FORI%=5TO11
+ 6960IF(I%=7)THENI%+=1
+ 6970*SD46 1
+ 6980*SDEDFIELD I%
+ 6990*SD46 ALL
+ 7000NEXT
+ 7010*SDCLOSE Customer
+ 7020*SDOPEN Paper
+ 7030REM****************** Add a card to the paper file ***************
+ 7040*SDADD
+ 7050MODE12
+ 7060PROCcentre("Fill in the customer order")
+ 7070PROCcentre("Fill in with *s then orders which are blank")
+ 7080REM****************** Put in the customer number automatically ***
+ 7090*SDGFIELD cus#
+ 7100$sd%=newcu$
+ 7110*SDPFIELD
+ 7120FORI%=2TO7
+ 7130*SD46 1
+ 7140*SDEDFIELD I%
+ 7150*SD46 ALL
+ 7160NEXT
+ 7170*SDCLOSE Paper
+ 7180MODE12
+ 7190*SD09 "Are there any more to add?"
+ 7200UNTIL((G%=78)OR(G%=110))
+ 7210ENDPROC
+ 7220 
+ 7230 
+ 7240 
+ 7250 
+ 7260 
+ 7270REM******************** Delete an old customer *********************
+ 7280DEF PROCdelete
+ 7290CLS
+ 7300REM****************** Find a card by address **********************
+ 7310*SD09 "Delete an old customer? (y/n)"
+ 7320IF(G%=78)OR(G%=110)ENDPROC
+ 7330MODE12
+ 7340INPUT"Whose record do you want to delete? <addr.>"D$
+ 7350*SDOPEN Customer
+ 7360*SD45 Noerrors
+ 7370*SDFIND D$
+ 7380IFG%=255THENPROCerror("Customer"):ENDPROC
+ 7390*SDGFIELD stat
+ 7400IF$sd%="m"THENPROCerror("Customer"):ENDPROC
+ 7410REM************* Reset the pointers on the card to be deleted ******
+ 7420*SDGFIELD stat
+ 7430$sd%="c"
+ 7440*SDPFIELD
+ 7450*SDGFIELD cus#
+ 7460oldcus$=$sd%
+ 7470*SDGFIELD prev
+ 7480oldprev$=$sd%
+ 7490$sd%="000-1"
+ 7500*SDPFIELD
+ 7510*SDGFIELD next
+ 7520oldnext$=$sd%
+ 7530$sd%="000-1"
+ 7540*SDPFIELD
+ 7550REM*********** Close up the link-list by adjusting the pointers ****
+ 7560*SDSELECTKEY next
+ 7570*SDFIND oldcus$
+ 7580*SDSELECTKEY ?
+ 7590*SDGFIELD next
+ 7600$sd%=oldnext$
+ 7610*SDPFIELD
+ 7620*SDGFIELD cus#
+ 7630newnext$=$sd%
+ 7640*SDSELECTKEY cus#
+ 7650*SDFIND oldnext$
+ 7660*SDSELECTKEY ?
+ 7670*SDGFIELD prev
+ 7680$sd%=newnext$
+ 7690*SDPFIELD
+ 7700*SDCLOSE ?
+ 7710REM*********** Set a date in the diary at which the ****************
+ 7720REM*********** the card will be actually deleted *******************
+ 7730PRINT"What is the date in six months?"
+ 7740INPUT"Day   <dd>"ds$
+ 7750INPUT"Month <yy>"ms$
+ 7760INPUT"Year  <yy>"ys$
+ 7770*SDOPEN Diary
+ 7780*SDADD
+ 7790*SDGFIELD cus#
+ 7800$sd%=oldcus$
+ 7810*SDPFIELD
+ 7820*SDGFIELD cada
+ 7830$sd%=ds$
+ 7840*SDPFIELD
+ 7850*SDGFIELD camo
+ 7860$sd%=ms$
+ 7870*SDPFIELD
+ 7880*SDGFIELD caye
+ 7890$sd%=ys$
+ 7900*SDPFIELD
+ 7910*SDCLOSE ?
+ 7920ENDPROC
+ 7930 
+ 7940 
+ 7950 
+ 7960 
+ 7970 
+ 7980REM*************** Publication menu and accept a response *********
+ 7990DEF PROCpub_men
+ 8000REPEAT
+ 8010PROCmenu("Publication Menu","View","Add","Delete","Back menu","")
+ 8020CASE O% OF
+ 8030WHEN 1 :PROCpsee
+ 8040WHEN 2 :PROCpadd
+ 8050WHEN 3 :PROCpdel
+ 8060WHEN 4 :ENDPROC
+ 8070ENDCASE
+ 8080UNTIL(O%=4)
+ 8090ENDPROC
+ 8100 
+ 8110 
+ 8120 
+ 8130 
+ 8140 
+ 8150REM***************** View all the current publications **********
+ 8160REM***************** aviable as tokens **************************
+ 8170DEF PROCpsee
+ 8180MODE12
+ 8190*SDOPEN Publi/n
+ 8200*SDGREC 0
+ 8210REPEAT
+ 8220*SDNEXT
+ 8230*SDVIEW
+ 8240*SD09 "Continue ?(y/n)"
+ 8250IFG%=78THEN
+ 8260*SDCLOSE Publi/n
+ 8270ENDPROC
+ 8280ENDIF
+ 8290UNTIL(N%=R%)
+ 8300*SDCLOSE Publi/n
+ 8310ENDPROC
+ 8320 
+ 8330 
+ 8340 
+ 8350 
+ 8360 
+ 8370REM************* Add a new publication **************************
+ 8380DEF PROCpadd
+ 8390MODE12
+ 8400*SD09 "Add a new publication? (y/n)"
+ 8410IFG%=78THENENDPROC
+ 8420*SDOPEN Publi/n
+ 8430REPEAT
+ 8440MODE12
+ 8450*SDADD
+ 8460*SDEDREC
+ 8470*SD09 "Do you want to add anymore? (y/n)"
+ 8480UNTIL(G%=78)
+ 8490*SDCLOSE Publi/n
+ 8500ENDPROC
+ 8510 
+ 8520 
+ 8530 
+ 8540 
+ 8550 
+ 8560REM************* Delete an old publication *********************
+ 8570DEF PROCpdel
+ 8580MODE12
+ 8590*SD09 "Delete a publication record? (y/n)"
+ 8600IFG%=78THENENDPROC
+ 8610MODE12
+ 8620INPUT"Which token do you want to delete?"del$
+ 8630*SDOPEN Publi/n
+ 8640*SD45 Noerrors
+ 8650*SDFIND del$
+ 8660IFG%=255THENPROCerror("Publi/n"):ENDPROC
+ 8670*SDDELREC
+ 8680*SDCLOSE Publi/n
+ 8690ENDPROC
+ 8700 
+ 8710 
+ 8720 
+ 8730 
+ 8740 
+ 8750REM************* Closing a file after an error has *****************
+ 8760REM************* been found ****************************************
+ 8770DEF PROCerror(file$)
+ 8780*SDCLOSE file$
+ 8790PRINT"Not found..."
+ 8800PRINT"Press a key..."
+ 8810REPEAT
+ 8820UNTILGET
+ 8830ENDPROC
+ 8840 
+ 8850 
+ 8860 
+ 8870 
+ 8880REM******************** End of procedures and functions ************
