@@ -76,7 +76,9 @@ def convert(source):
   elif tag in [32,33,34,35]:
    points=path(off,m);full='/'.join(parents);line(points,value,full);fill(points,value,full)
   else:raise ValueError(tag)
- walk(80)
+ root=u(0x34)-base-12
+ assert root in rs and rs[root]['tag'] in [48,49,64],'Invalid root object reference'
+ walk(root)
  # Convert source handedness after all nested source transforms are applied.
  # Reflect Z, and reverse triangle winding so surface orientation is preserved.
  for item in surfaces+strokes:
@@ -84,7 +86,7 @@ def convert(source):
  for item in surfaces:item['p'][3:9]=item['p'][6:9]+item['p'][3:6]
  assert surfaces or strokes
  points=np.array([p for s in strokes for p in np.array(s['p']).reshape(-1,3)]);bounds=[points.min(axis=0).tolist(),points.max(axis=0).tolist()]
- return {'triangles':surfaces,'lines':strokes,'bounds':bounds,'objects':names,'sourceBytes':len(b),'coordinateConversion':'Source Z reflected after instancing; triangle winding reversed','recordCount':len(rs),'cameraObjectsOmitted':camera_count,'recordTypes':dict(collections.Counter(r['tag'] for r in rs.values()))}
+ return {'triangles':surfaces,'lines':strokes,'bounds':bounds,'objects':names,'sourceBytes':len(b),'coordinateConversion':'Source Z reflected after instancing; triangle winding reversed','rootOffset':root,'recordCount':len(rs),'cameraObjectsOmitted':camera_count,'recordTypes':dict(collections.Counter(r['tag'] for r in rs.values()))}
 
 if __name__=='__main__':
  import argparse

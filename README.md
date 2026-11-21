@@ -20,4 +20,4 @@ The original Wire Cutter archive includes its historical help file and contact d
 
 ## Euclid models
 
-The !Euclid collection contains Conservatory, Kitchen and Room, with original downloads and rotatable wireframe/coloured-surface reconstructions. See `models/euclid/README.md` for decoder assumptions and instructions for adding models.
+The !Euclid collection contains Thomas’s Conservatory, Kitchen and Room plus David’s Jonny and MyRoom, with original downloads and rotatable wireframe/coloured-surface reconstructions. See `models/euclid/README.md` for decoder assumptions and instructions for adding models.
