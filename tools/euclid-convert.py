@@ -76,7 +76,7 @@ def convert(source):
   elif tag in [32,33,34,35]:
    points=path(off,m);full='/'.join(parents);line(points,value,full);fill(points,value,full)
   else:raise ValueError(tag)
- root=u(0x34)-base-12
+ root=u(0x34)-base-12 if u(0x34) else 80
  assert root in rs and rs[root]['tag'] in [48,49,64],'Invalid root object reference'
  walk(root)
  # Convert source handedness after all nested source transforms are applied.
