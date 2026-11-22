@@ -52,4 +52,3 @@
 
 .protocol-toc{display:flex;flex-wrap:wrap;gap:.75rem;margin:1.5rem 0}.protocol-section{padding:1.5rem 0;border-top:1px solid var(--line)}.protocol-section h3{scroll-margin-top:1.5rem}.protocol-section code{font-family:var(--mono);font-size:.9em;overflow-wrap:anywhere;color:var(--ink)}.protocol-section ol{padding-left:1.5rem;line-height:1.8;color:var(--muted)}.protocol-section li{margin-bottom:1rem}.protocol-exhibit .module-table{margin:1.5rem 0}.protocol-exhibit td,.protocol-exhibit th{vertical-align:top}.protocol-exhibit .actions{flex-wrap:wrap}
 
-.euclid-zoom-ticks{display:flex;justify-content:space-between;gap:.2rem;font-size:.875rem;color:var(--muted);margin-top:.4rem}.euclid-controls label[for="euclid-zoom"]{flex-basis:260px}.euclid-controls #euclid-zoom-value{font-size:.875rem;white-space:nowrap}
