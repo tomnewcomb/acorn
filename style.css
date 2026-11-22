@@ -49,3 +49,5 @@
 @media(max-width:1000px){.euclid-cards{grid-template-columns:repeat(2,minmax(0,1fr))}header{gap:1.5rem}.header-note{display:none}header nav{gap:1.25rem}}@media(max-width:650px){.euclid-cards{grid-template-columns:1fr}.euclid-viewer{padding:.75rem}.euclid-controls{gap:1rem}.euclid-controls>label{flex-basis:100%}.euclid-stage{aspect-ratio:1/1;max-height:none}header nav{gap:.75rem;font-size:.875rem}.euclid-card>div{padding:1.25rem}.euclid-notes{margin-top:1rem}}
 
 .euclid-controls .euclid-check[hidden]{display:none}
+
+.protocol-toc{display:flex;flex-wrap:wrap;gap:.75rem;margin:1.5rem 0}.protocol-section{padding:1.5rem 0;border-top:1px solid var(--line)}.protocol-section h3{scroll-margin-top:1.5rem}.protocol-section code{font-family:var(--mono);font-size:.9em;overflow-wrap:anywhere;color:var(--ink)}.protocol-section ol{padding-left:1.5rem;line-height:1.8;color:var(--muted)}.protocol-section li{margin-bottom:1rem}.protocol-exhibit .module-table{margin:1.5rem 0}.protocol-exhibit td,.protocol-exhibit th{vertical-align:top}.protocol-exhibit .actions{flex-wrap:wrap}
