@@ -1,0 +1,1125 @@
+{
+  "sources": [
+    {
+      "label": "Game",
+      "url": "Game.txt",
+      "name": "Game,ffb",
+      "lines": 1750,
+      "annotations": [
+        {
+          "start": 10,
+          "title": "Memory, resources and launch",
+          "paragraphs": [
+            "BBC BASIC reserves working areas for 60,001 bytes of machine code, two 40,101-byte board buffers, a 2,048-byte engine workspace, 62,001 bytes of sprites and 40,001 bytes for the supplied tune. DIM includes offset zero. E% = Fd% puts the workspace address in R4 for CALL tron3d; tron3d subsequently moves that address to R12.",
+            "The board is a 200 × 200 byte image. The 60-byte header separates its sprite metadata from the pixels; Fd%!516 points to PIC% + &3C. The Board sprite is loaded into PIC2%, Sprites into SPR%, and DISPCODE into the beginning of MC%. Surrender is also loaded, although the launcher already gives that file to QTMTracker.",
+            "pills% = 20 controls the pickup-slot table, fabs% = 10 the number of power choices and sch% = 2 the effect channels. dd = 15 caps the computer’s clearance probes. The assembly begins at MC% + &AAA0, immediately after the supplied 43,680-byte renderer. The BreakList/BreakSet calls are debugger-related commands retained from the original listing; their availability is separate from the game engine."
+          ]
+        },
+        {
+          "start": 340,
+          "title": "PROC assemble and getcolour — board sampling",
+          "paragraphs": [
+            "The assembler makes two passes, with OPT 0 then OPT 2. getcolour is placed exactly where the external renderer expects its helper: MC% + &AAA0. Its computed jump chooses one of four transformations for the current heading. R8 and R9 describe a sample’s sideways and longitudinal offsets; R7 is the 200-byte board stride.",
+            "The up, down, left and right branches rotate those offsets around the board pointer in R6, read a single map byte, then expand that palette index through FN rest. The supplied renderer writes repeated copies of that byte to stretch board cells into a perspective view. This is a transformed view of a flat map, rather than a polygon-based 3D world."
+          ]
+        },
+        {
+          "start": 740,
+          "title": "change — replace a colour over a byte range",
+          "paragraphs": [
+            "R0 is the first address, R1 the byte count, R2 the colour to find and R3 its replacement. The assembler repeats the load/compare/conditional-store sequence 64 times inside the loop, reducing branch overhead. Callers use it both to fade crashed players and to remove trail colours.",
+            "The routine assumes its byte count is a multiple of 64: the endpoint comparison occurs only after each entire 64-byte block. The game’s 40,000-byte board and 81,920-byte display satisfy that requirement."
+          ]
+        },
+        {
+          "start": 900,
+          "title": "movemem — copy bytes",
+          "paragraphs": [
+            "Copies R3 bytes from R1 to R2, one byte per iteration. It reloads the preserved original board at the beginning of each round. Unlike change, it has no unrolling or word-copy optimisation; the simple loop is correct for this supplied source and destination arrangement."
+          ]
+        },
+        {
+          "start": 970,
+          "title": "dxdy — direction to movement",
+          "paragraphs": [
+            "Converts a heading in R9 to dx in R10 and dy in R8. The four headings are 0 = up, 1 = right, 2 = down and 3 = left. Increments and decrements elsewhere wrap headings with AND #3, keeping turns relative to the rider’s current view."
+          ]
+        },
+        {
+          "start": 1100,
+          "title": "finddist — probe clearance",
+          "paragraphs": [
+            "Starting at R6, the routine advances one board byte in the chosen direction and calls testokay for each sample. R0 counts traversable cells, capped at dd = 15. A blocked adjacent cell therefore returns zero. Collision permissions are those of the current player, including active trail-passing powers.",
+            "There is no route search or knowledge of the opponent’s future movement. This is a straight ray probe. At the cap it samples one additional safe cell before recognising R0 = 15, but still returns 15."
+          ]
+        },
+        {
+          "start": 1240,
+          "title": "Random-generator state",
+          "paragraphs": [
+            "rndseed holds the shared shift-register state and rndeor the feedback mask &1D872B41. gameinit replaces the zero seed with OS_ReadMonotonicTime. FN rnd emits the inline ARM sequence that advances this state; BASIC’s RND is not used for the engine decisions."
+          ]
+        },
+        {
+          "start": 1270,
+          "title": "tryleft — occasional early left turn",
+          "paragraphs": [
+            "The random-movement branch may try a left turn before the normal distance comparison. It only accepts the turn when the left clearance is at least five cells. Its non-local return restores the computer routine’s stack frame directly, ending the whole decision."
+          ]
+        },
+        {
+          "start": 1330,
+          "title": "tryright — occasional early right turn",
+          "paragraphs": [
+            "The right-hand counterpart requires at least five safe cells. If that condition fails, control returns to computer, where the same random value falls into the straight-ahead early-return case."
+          ]
+        },
+        {
+          "start": 1390,
+          "title": "computer — three probes and turn selection",
+          "paragraphs": [
+            "The engine first randomly sets the fire flag with a nominal 1-in-64 test, allowing computer players to select and activate pickups. It locates the current player in the board and measures left, right and forward clearance with finddist.",
+            "A second random test uses seven bits. Values 0 and 1 try an early left or right turn; values through 6 otherwise return straight ahead. Larger values enter the distance logic. Directions that reach the 15-cell probe limit receive special handling before the ordinary comparison.",
+            "The final comparison appears inverted: when left is greater than right, it compares right with forward, and otherwise it compares left with forward. Thus the smaller side clearance is compared with forward, while the larger side can be ignored. The Discovered bugs tab gives a concrete counterexample; the browser demonstration retains this original behaviour."
+          ]
+        },
+        {
+          "start": 2200,
+          "title": "alldd — all three rays reach the limit",
+          "paragraphs": [
+            "When all clearances equal 15, almost every result continues straight. Of 128 possible masked random values, zero turns right, one turns left and the remaining 126 keep the current heading. These probabilities assume approximately uniform low bits from the shift-register generator."
+          ]
+        },
+        {
+          "start": 2310,
+          "title": "twodd — two rays reach the limit",
+          "paragraphs": [
+            "The caller puts two preferred relative directions into R1 and R2. Of eight masked random values, zero picks the first, one picks the second and the other six continue straight. If forward is one of the preferred directions, these outcomes combine to give it seven-eighths of the choices."
+          ]
+        },
+        {
+          "start": 2410,
+          "title": "swap — frame pacing and screen banks",
+          "paragraphs": [
+            "The routine waits until the vertical-sync event counter is at least two greater than the saved frame start. OS_Byte 112/113 select the drawing and displayed banks, alternately using banks 1 and 2. findscreen then records the address of the newly selected drawing bank.",
+            "This ties the game to display refresh events rather than a free-running BASIC loop. Under a conventional 50 Hz display, two refresh events are about 40 ms, but actual emulated timing and rendering work can affect the observed rate."
+          ]
+        },
+        {
+          "start": 2600,
+          "title": "findscreen — locate the framebuffer",
+          "paragraphs": [
+            "OS_ReadVduVariables reads variable 148, the current graphics-memory address. The output goes to workspace offset 512. Keeping that address in the workspace lets the ARM renderer and screen-clearing routines access the active drawing bank directly."
+          ]
+        },
+        {
+          "start": 2690,
+          "title": "draw — the two player views",
+          "paragraphs": [
+            "Calls drawloop for the first player at display offset zero and the second at 320 × 128 bytes. The second player record begins 256 bytes after the first. drawfab overlays the power-up indicator for each player, using graphics-coordinate offsets appropriate to the two views."
+          ]
+        },
+        {
+          "start": 2830,
+          "title": "drawloop — heading-relative perspective origin",
+          "paragraphs": [
+            "Builds the address of the player’s current board cell from x + 200y, then shifts it 20 cells ahead in the current heading. It passes that origin to DISPCODE, which samples offsets relative to it. The supplied binary emits a 320 × 117-pixel view, leaving space between the two player views and the text below.",
+            "No renderer-generator source is present in this directory. The binary’s fixed sample coordinates can still be recovered from its MOV/MVN, BL getcolour and repeated store instructions; the browser preview uses those recovered spans rather than inventing a new perspective formula."
+          ]
+        },
+        {
+          "start": 3160,
+          "title": "move — steering, pickups and trail deposition",
+          "paragraphs": [
+            "The player’s lose-bit stops further movement after a crash. Human and computer handlers update the heading, then dxdy advances x and y by one cell. The cell colour is checked against the currently flashing pickup colour, and maybepill verifies that the address is a real pickup.",
+            "Power indices 3 and 5 invoke letswrap when the new cell is zero. testokay decides whether the resulting cell is traversable. A failed test sets this player’s bit in the shared lose mask; otherwise the routine writes the player’s trail colour into the cell. Player one moves before player two each tick, which gives the update order observable consequences."
+          ]
+        },
+        {
+          "start": 3630,
+          "title": "letswrap — skip the outside region",
+          "paragraphs": [
+            "The wrap sound is followed by repeated steps in the current heading. x and y wrap around the 0–199 board limits. Zero and the two special colours 187 and 183 are skipped until another colour is reached, at which point the new coordinates are stored.",
+            "The loop has no iteration cap. The supplied board normally offers a traversable destination, but a path containing only the skipped values would never return. This is a conditional robustness limitation rather than evidence that an ordinary supplied round hangs."
+          ]
+        },
+        {
+          "start": 3990,
+          "title": "maybepill — recognise an actual pickup",
+          "paragraphs": [
+            "The flashing colour check is only a quick filter. This routine compares the cell’s address with each of the 20 pickup pointers. A match clears that slot to zero and invokes pickeduppill. Clearing the slot avoids collecting the same pickup again, but exposes the separate pointer-test bug in flashpills."
+          ]
+        },
+        {
+          "start": 4140,
+          "title": "pickeduppill — prepare a selectable power",
+          "paragraphs": [
+            "Plays the pickup effect, draws a 16-bit random value, multiplies it by ten and shifts the product down to select a power index from 0 to 9. Bit 8 is then set to mark the power as cycling/selectable. The effect timer is cleared; the player must select and activate the power later."
+          ]
+        },
+        {
+          "start": 4360,
+          "title": "human — edge-triggered relative controls",
+          "paragraphs": [
+            "OS_Byte 129 polls the player’s three configured keys. The previous-key mask at offset 16 prevents a held left or right key from turning on every game tick. New presses turn relative to the current heading; a new fire press sets offset 48 to one.",
+            "The default keys decode to Z, X and Left Shift for player one, and keypad *, keypad # and keypad / for player two. These are Acorn key codes, not PC character codes; the menu can redefine them."
+          ]
+        },
+        {
+          "start": 4730,
+          "title": "testokay — colour-based collision rules",
+          "paragraphs": [
+            "The return condition flags carry the result: EQ means collision/death and NE means safe. Zero is always blocked. Red trail colour 23 is permitted with power 0 or 3; yellow 119 with power 4 or 3. Other colours whose low two bits equal three are blocked unless power 7 or 3 is active. Other nonzero cells are safe.",
+            "The rule relies on deliberate palette-index choices, so a cell’s byte is both its appearance and collision category. The two named trail colours receive explicit tests before the generic low-bit rule; power 7 does not automatically permit either player trail."
+          ]
+        },
+        {
+          "start": 5090,
+          "title": "fadeloser — fade crashed trail colours",
+          "paragraphs": [
+            "Two 13-byte colour ramps describe the red and yellow fading sequences. For each crashed player, change replaces the current ramp entry with a later one across the full 320 × 256 display. swap presents each intermediate stage, making a crash visible without altering the board’s logical state."
+          ]
+        },
+        {
+          "start": 5410,
+          "title": "setupsound — game-effect configuration",
+          "paragraphs": [
+            "Waits for display sync twice, reinitialises the sound queue and configures two channels with a 208-sample buffer and a nominal 48-microsecond sample period. Both channels are centred in stereo and the tuning is reset. Named sample voices are supplied as modules by the launcher; BASIC/ARM sends the playback commands."
+          ]
+        },
+        {
+          "start": 5680,
+          "title": "setvolume — tracker volume",
+          "paragraphs": [
+            "Maps the four menu volume settings to tracker levels 0, 20, 40 and 64 before calling QTM_Volume. The later volumes table separately maps the same setting to the sound-effect amplitude representation."
+          ]
+        },
+        {
+          "start": 5810,
+          "title": "gameinit — defaults and workspace",
+          "paragraphs": [
+            "Claims the vertical-sync event handler, derives an initial volume setting from Sound_Volume, selects the default keys and sets player one to human and player two to computer. Scores and the sound-channel selector are cleared; the default winning score is 20.",
+            "OS_ReadMonotonicTime seeds the ARM random state. The VDU string selects MODE 13 and reserves a second screen bank, hides the cursor, then finds the sprite pointers. The title text explicitly credits Thomas Newcomb and 1995; the supplied Game file has a later September 1997 modification date."
+          ],
+          "fields": [
+            [
+              "0",
+              "Heading",
+              "0 up, 1 right, 2 down, 3 left"
+            ],
+            [
+              "4 / 8",
+              "x / y",
+              "Board cell coordinates"
+            ],
+            [
+              "12",
+              "Controller",
+              "0 human, 1 computer"
+            ],
+            [
+              "16",
+              "Held-key mask",
+              "Bits for left, right and fire from the previous update"
+            ],
+            [
+              "20",
+              "Player index",
+              "0 or 1; selects the bit in the shared lose mask"
+            ],
+            [
+              "24",
+              "Trail colour",
+              "23 red or 119 yellow"
+            ],
+            [
+              "28 / 32 / 36",
+              "Keys",
+              "OS_Byte key codes for left, right and fire"
+            ],
+            [
+              "40",
+              "Power state",
+              "Low byte is the effect index; 255 means none, bit 8 cycles and bit 9 waits for activation"
+            ],
+            [
+              "44",
+              "Score",
+              "Wins accumulated across rounds"
+            ],
+            [
+              "48",
+              "Fire request",
+              "New human press or a random computer request"
+            ],
+            [
+              "52",
+              "Effect timer",
+              "Ticks remaining for an active power"
+            ]
+          ]
+        },
+        {
+          "start": 6260,
+          "title": "gamescrwriting — credit and scores",
+          "paragraphs": [
+            "The supplied caption reads “3D TRON BY THOMAS NEWCOMB ©1995”. gamescrwriting clears the selected screen, prints this caption near the bottom and delegates the score display to printgamescore. It is called for both drawing banks during round setup."
+          ]
+        },
+        {
+          "start": 6400,
+          "title": "game — rounds, movement and match scoring",
+          "paragraphs": [
+            "Restores the original board, writes both screen banks and positions the players at adjacent cells (99,100) and (100,100), facing left and right. Red and yellow trail colours are 23 and 119. Neither player begins with an active power. Twenty pickups are placed before the first frame.",
+            "Each tick flashes pickups, renders both views, swaps banks, moves player one and player two, processes fire requests and cycles unselected powers. Speed power 1 gives its player an extra move. Escape returns to the menu.",
+            "A crash ends the round; a single surviving player receives a point. With stop-at-score zero the next round ends the game; 110 means no score limit, while other values end the match when either score reaches the threshold. The unusual ALL/NONE menu labels refer to those sentinels, not the number of players."
+          ]
+        },
+        {
+          "start": 7660,
+          "title": "putpills — random pickup placement",
+          "paragraphs": [
+            "The 20-slot table begins at workspace offset 1024. Random 16-bit offsets are rejected when they exceed 39,999 or identify a zero/blocked colour. Accepted cells become colour 255 and their absolute addresses are stored.",
+            "The placement test does not explicitly exclude the two initial player cells. Those cells have not yet been marked as trails when putpills runs. On boards where the starting cells are otherwise eligible, a pickup can therefore be placed underneath a starting player."
+          ]
+        },
+        {
+          "start": 8010,
+          "title": "flashpills — animate remaining pickups",
+          "paragraphs": [
+            "Cycles through the pillcolours palette indices and writes the selected colour to each pickup address. Collected slots are deliberately zeroed by maybepill, so this routine needs to skip zero pointers.",
+            "The existing code compares R1, the table iterator, to zero instead of R4, the loaded pickup pointer. R1 remains a valid nonzero table address, so the conditional store still writes when R4 is zero. This is a concrete low-address write bug, documented in the Discovered bugs tab."
+          ]
+        },
+        {
+          "start": 8180,
+          "title": "drawfab — selectable-power indicator",
+          "paragraphs": [
+            "Power state 255 suppresses the display. States at least 256 use the low byte to look up an icon through fabsprnos. The pressfire prompt flashes according to the frame counter. States below 256 are active powers and enter drawrunningfab instead."
+          ]
+        },
+        {
+          "start": 8460,
+          "title": "drawrunningfab — active-power display",
+          "paragraphs": [
+            "An active power’s icon flashes near expiry: timer values at most 100 hide the icon on alternate bit-1 phases. Power 8 invokes finder to show the opponent’s direction; other effects use their ordinary icon from fabsprnos."
+          ]
+        },
+        {
+          "start": 8860,
+          "title": "finder — relative opponent bearing",
+          "paragraphs": [
+            "Compares the two players’ x and y positions to classify the opponent into a quadrant, subtracts the viewer’s heading and wraps the result to four possibilities. One of the e0–e3 sprites is then drawn. This is a quadrant indicator, not a distance measurement or a path-finding display."
+          ]
+        },
+        {
+          "start": 9210,
+          "title": "fabcycle — cycle an unselected power",
+          "paragraphs": [
+            "Once every four game ticks, a power with bit 8 set advances its low-byte index. Index ten wraps to zero and bit 8 remains set. Pressing fire stops that cycle before a later press activates the chosen effect."
+          ]
+        },
+        {
+          "start": 9360,
+          "title": "Power icons and sprite-name table",
+          "paragraphs": [
+            "fabsprnos maps the ten power indices to the 20 cached sprite pointers. In order the icons are gothrored, speedup, ruboutyellow, compass, gothroyellow, wrap, ruboutred, gothroothers, finder and steal. The remaining sprites include the title logo, the pressfire prompt and directional indicators.",
+            "Names identify the artwork, while actual effects come from testokay, move, startfab and the main loop. In particular, the compass-icon power at index 3 is treated specially by the collision and wrap logic; its name alone is insufficient to infer those rules."
+          ]
+        },
+        {
+          "start": 9720,
+          "title": "findsprites — cache sprite pointers",
+          "paragraphs": [
+            "OS_SpriteOp &118 resolves each zero-terminated name in spritenames. The resulting pointers are stored in the workspace beginning at offset 768. Rendering then uses fixed pointer-table indices instead of repeatedly searching sprite names."
+          ]
+        },
+        {
+          "start": 9910,
+          "title": "startscreen — menu and input",
+          "paragraphs": [
+            "Selects the opposite screen bank, clears it and plots the logo. The menu prints controller types, scores, volume and stop-at-score. F1 starts; F2/F3 toggle human/computer for each player; F4 redefines keys; F5 changes sound; F6 clears scores; F7 changes the score limit; Escape exits.",
+            "The key-poll loop waits for release after most menu actions, preventing a held key from rapidly toggling an option. R11 carries a start/quit result back to tron3d."
+          ]
+        },
+        {
+          "start": 10700,
+          "title": "newscorelimit — cycle the match limit",
+          "paragraphs": [
+            "Steps by five below 30 and by ten thereafter. 120 wraps to zero, so the available states include 0, 5, 10, 15, 20, 25, 30 … 100 and 110. The display treats zero as ALL and 110 as NONE; game gives those states special round/match meanings."
+          ]
+        },
+        {
+          "start": 10800,
+          "title": "printscorelimit — show the limit",
+          "paragraphs": [
+            "Prints the ALL/NONE strings for the two sentinel values, or uses OS_ConvertCardinal2 for a numeric limit. Extra spaces erase any remaining digits from the previously displayed value."
+          ]
+        },
+        {
+          "start": 11120,
+          "title": "incvolume — cycle the volume setting",
+          "paragraphs": [
+            "Increments the stored setting and ANDs it with three, cycling through 0–3. The startscreen handler updates both the visible value and the tracker volume; game sound configuration consults the same stored setting."
+          ]
+        },
+        {
+          "start": 11190,
+          "title": "Menu text and score labels",
+          "paragraphs": [
+            "The text embeds VDU cursor-position and colour commands among the menu strings. It documents the F1–F7 actions, colours player-one text red and player-two text yellow, and provides the common score labels used on the title and game screens."
+          ]
+        },
+        {
+          "start": 11490,
+          "title": "printgamescore — scores during play",
+          "paragraphs": [
+            "Places the shared score labels on row 15 and calls printscore separately for each player. These coordinates occupy the gap below the first perspective view, while the credit appears at the bottom of the display."
+          ]
+        },
+        {
+          "start": 11650,
+          "title": "printvolume — OFF or numeric level",
+          "paragraphs": [
+            "Displays OFF for setting zero. Other settings are converted to a single ASCII digit and followed by spaces to clear the longer OFF label."
+          ]
+        },
+        {
+          "start": 11880,
+          "title": "printscore — a player’s score",
+          "paragraphs": [
+            "R11 identifies the player; R10 and R9 give text coordinates. It selects the corresponding player colour, converts the record’s offset-44 score into a small buffer and writes it before restoring the neutral text colour."
+          ]
+        },
+        {
+          "start": 12080,
+          "title": "printp1opt — player-one controller label",
+          "paragraphs": [
+            "The eight-byte stringno area is shared by numeric output. printp1opt positions the cursor and writes HUMAN or COMPUTER according to player one’s controller field at offset 12. The coloured labels match the corresponding red view."
+          ]
+        },
+        {
+          "start": 12250,
+          "title": "printp2opt — player-two controller label",
+          "paragraphs": [
+            "The second player record begins at R12 + 256. This otherwise parallel routine writes that record’s HUMAN/COMPUTER setting in yellow. humantext and computertext include a final neutral-colour VDU command."
+          ]
+        },
+        {
+          "start": 12510,
+          "title": "returnkeyname — key-code lookup",
+          "paragraphs": [
+            "A negative key code is complemented into its table index. The routine walks that many zero-terminated entries in keylist and returns the matching display string. Empty entries preserve the numerical positions of unsupported keys; the table describes Acorn keyboard codes."
+          ]
+        },
+        {
+          "start": 12660,
+          "title": "keylist — Acorn key names",
+          "paragraphs": [
+            "The table supplies labels for modifiers, letters, function keys, mouse buttons and keypad keys. It is indexed by the codes returned during key redefinition, so empty strings are meaningful placeholders. This long data section is retained in full even though it is not executable game logic."
+          ]
+        },
+        {
+          "start": 13910,
+          "title": "resetscores — clear both totals",
+          "paragraphs": [
+            "Waits for all keys to be released, writes zero to both offset-44 scores, refreshes the drawing-bank address and clears the lower display. The menu then redraws its labels and values."
+          ]
+        },
+        {
+          "start": 14070,
+          "title": "clearbottom — erase menu area",
+          "paragraphs": [
+            "Clears framebuffer bytes from 15 × 2560 through 80 × 1024 using four zero registers at a time. These are MODE 13 text-row and screen-size constants, not generic dimensions; the routine relies on the mode selected by gameinit."
+          ]
+        },
+        {
+          "start": 14210,
+          "title": "redefinekeys — two-player prompts",
+          "paragraphs": [
+            "Finds the current framebuffer, clears the lower area and prints the redefine heading. It calls redf1 once for each player, passing different player labels, colours and x coordinates, then clears the prompts and restores the neutral text colour."
+          ]
+        },
+        {
+          "start": 14440,
+          "title": "redf1 — store three chosen keys",
+          "paragraphs": [
+            "Patches the prompt’s embedded VDU x coordinates and player-number character, asks for left, right and fire in turn, and stores the resulting negative key codes at player offsets 28, 32 and 36. It does not reject duplicate keys."
+          ]
+        },
+        {
+          "start": 14720,
+          "title": "redf2 — wait for release and a new press",
+          "paragraphs": [
+            "Polls until no keys are held, then waits for a key. It complements the returned code for later key-state polling, calls returnkeyname to show the chosen key and returns the code in R3."
+          ]
+        },
+        {
+          "start": 14940,
+          "title": "Redefinition prompt strings",
+          "paragraphs": [
+            "The prompts contain writable player-number and cursor-position bytes. redf1 patches them before output, allowing the same strings to serve either player. The text describes controls in relative left/right terms, matching human’s turning behaviour."
+          ]
+        },
+        {
+          "start": 15310,
+          "title": "tron3d — title, matches and shutdown",
+          "paragraphs": [
+            "CALL supplies the workspace through R4; tron3d keeps it in R12. After gameinit, the title starts QTM tracker playback; starting a match stops the tune and returns to the game-effect sound setup. On exit, the frame event handler is released, normal display settings are restored and a goodbye message is printed.",
+            "QTMModule, Surrender and the effect modules are supplied dependencies. The title’s code credit establishes Thomas’s game authorship; it does not establish the authorship of the separate tracker file or sound samples."
+          ]
+        },
+        {
+          "start": 15660,
+          "title": "testfire — select then activate a power",
+          "paragraphs": [
+            "Any nonzero effect timer decrements first. With no new fire request the routine returns. A selectable power (bit 8) becomes a selected-but-not-active power (bit 9) on the first press, accompanied by the select sound. A later press on that state invokes startfab.",
+            "This two-stage interaction lets the cycling power choices be stopped and then deployed. Human fire is edge-triggered; computer fire requests are random."
+          ]
+        },
+        {
+          "start": 15850,
+          "title": "Power activation sound names",
+          "paragraphs": [
+            "These zero-terminated strings name the selectpill, speed and usemscpill voice modules. makesound attaches the chosen named voice to one of the two effect channels; the strings themselves contain no audio data."
+          ]
+        },
+        {
+          "start": 15980,
+          "title": "startfab — activate the selected effect",
+          "paragraphs": [
+            "Clears the state bits to leave a power index, chooses the appropriate effect sound and installs a timer from fablengths. Speed lasts 100 ticks; the trail-passing powers typically last 400; index 3 lasts 200; finder lasts 600. Special timer values 25 and 26 identify immediate trail deletion and stealing.",
+            "For the two deletion powers, change replaces either the yellow or red trail colour with safe colour 32 across all 40,000 board cells. Their later 25-tick lifetime chiefly controls the indicator; the colour replacement itself happens immediately."
+          ]
+        },
+        {
+          "start": 16360,
+          "title": "steal — transfer the opponent’s power",
+          "paragraphs": [
+            "The caller reaches steal when the selected duration is 26. The routine identifies the other player, copies that player’s complete power state and timer, then resets the victim to state 255 and timer zero. It can therefore steal an active, cycling or selected power, or effectively steal nothing if the opponent has none."
+          ]
+        },
+        {
+          "start": 16610,
+          "title": "Power durations",
+          "paragraphs": [
+            "The ten entries are indexed by the low-byte power number: 400, 100, 25, 200, 400, 400, 25, 400, 600 and 26 ticks. Values 25 and 26 also act as dispatch sentinels in startfab, so this table couples duration data with effect selection."
+          ]
+        },
+        {
+          "start": 16730,
+          "title": "decfabtimer — expire an effect",
+          "paragraphs": [
+            "Subtracts one tick from the timer at offset 52. Reaching zero resets the power state to 255, the no-power sentinel. The game invokes this before processing a new fire request for that player."
+          ]
+        },
+        {
+          "start": 16810,
+          "title": "makesound — rotate effect channels",
+          "paragraphs": [
+            "Alternates channels 1 and 2, silences the next channel, attaches the named voice and starts it at pitch &1800 for 30 centiseconds. Volume comes from the four-entry effect table. The original voice modules define how the sample data is replayed; a browser WAV preview is an extraction, not a full RISC OS sound emulation."
+          ]
+        },
+        {
+          "start": 17030,
+          "title": "Effect volume table",
+          "paragraphs": [
+            "The values 0, -3, -8 and -15 map the menu’s four levels to the Sound_Control amplitude convention. These are distinct from the 0/20/40/64 QTM tracker volume levels, even though they share the same menu setting."
+          ]
+        },
+        {
+          "start": 17090,
+          "title": "startframeclock — claim vertical-sync events",
+          "paragraphs": [
+            "Claims EventV (&10) with R12 as the handler workspace and enables event 4 through OS_Byte 14. frameclock counts those events; swap reads the count to enforce the minimum frame interval."
+          ]
+        },
+        {
+          "start": 17200,
+          "title": "stopframeclock — release the event handler",
+          "paragraphs": [
+            "Disables event 4 and releases the exact EventV handler/workspace pair installed earlier. This cleanup is on the normal exit path. The opening error handler rethrows errors rather than explicitly calling this routine, a potential cleanup limitation after runtime failure."
+          ]
+        },
+        {
+          "start": 17310,
+          "title": "frameclock — increment the event counter",
+          "paragraphs": [
+            "Ignores events other than number 4. A vertical-sync event increments workspace offset 556 and returns with the event number restored. gameinit does not explicitly clear this counter, but frame pacing works from differences rather than assuming an initial zero."
+          ]
+        },
+        {
+          "start": 17400,
+          "title": "Finish the assembly passes",
+          "paragraphs": [
+            "The closing bracket ends the ARM assembler block, NEXT performs the second pass and ENDPROC returns to BASIC. Labels now hold the callable addresses used by CALL tron3d and the renderer’s helper calls."
+          ]
+        },
+        {
+          "start": 17460,
+          "title": "FN rnd — inline shift-register random numbers",
+          "paragraphs": [
+            "Emits code that loads rndseed, repeatedly shifts it left and conditionally XORs &1D872B41 when the outgoing top bit is set. The caller supplies the number of shifts and the destination/scratch registers. The final state is written back to rndseed.",
+            "This is a compact deterministic feedback shift register, suitable for game variation rather than cryptographic randomness. Masking its low bits supplies the approximate probabilities used in computer, alldd and twodd."
+          ]
+        },
+        {
+          "start": 17570,
+          "title": "FN rest — expand a sampled colour",
+          "paragraphs": [
+            "Repeats an eight-bit palette index across all four bytes of R1, then copies the result into R2–R4. The renderer can consequently use word and multiple-register stores to fill a horizontal span with that colour. This helper is emitted into each getcolour orientation branch by FN rest."
+          ]
+        }
+      ]
+    }
+  ],
+  "bugs": [
+    {
+      "title": "Collected pickups cause a store through address zero",
+      "lines": "4050–4090; 8010–8150 · maybepill / flashpills",
+      "confidence": "High confidence · direct register and pointer trace",
+      "paragraphs": [
+        "maybepill clears a collected pickup's table slot to zero. flashpills later loads each slot into R4, but compares the table iterator R1 with zero instead of the loaded pointer. R1 remains a valid nonzero workspace address, so STRNEB R2,[R4] executes even for a collected slot, writing the flashing colour to address zero.",
+        "On a protected mapping this can cause an access fault; where low memory is writable it can corrupt system memory. The skipped-zero test needs to examine R4. This audit establishes the invalid store from the source; it does not claim a particular emulator or RISC OS configuration's response."
+      ],
+      "severity": "serious"
+    },
+    {
+      "title": "Computer compares the smaller side clearance with forward",
+      "lines": "2080–2180 · computer",
+      "confidence": "High confidence about behaviour · reduced decision tests",
+      "paragraphs": [
+        "When left is greater than right, the code branches to hr1 and compares right against forward. Otherwise it compares left against forward. The larger side clearance is therefore discarded in favour of the smaller one, provided no direction has already reached the 15-cell cap and no earlier random branch returns.",
+        "For left=10, right=3 and forward=5 it goes forward, ignoring the clearer left path. For left=3, right=10 and forward=2 it turns left into the worse side. An intended greatest-clearance strategy would need the opposite comparison branch. The interactive demo preserves the original result rather than silently fixing it."
+      ],
+      "severity": "logical"
+    },
+    {
+      "title": "A pickup can be placed under a starting rider",
+      "lines": "6650–6980; 7730–7990 · game / putpills",
+      "confidence": "Source-based finding · placement depends on random draw",
+      "paragraphs": [
+        "The two starting positions are assigned before putpills, but those cells are not yet marked with rider trails. putpills checks the board colour and therefore does not explicitly exclude the two player coordinates. If a starting cell is an eligible floor colour, it can receive a pickup.",
+        "Collection is checked only after movement into the next cell. A pickup at a starting coordinate is not automatically awarded at round start and can be overwritten by later trail movement. Whether initial cells should be reserved is an inferred design choice."
+      ],
+      "severity": "logical"
+    },
+    {
+      "title": "The board is copied byte by byte between rounds",
+      "lines": "900–950; 6480–6530 · movemem",
+      "confidence": "Definite implementation choice · not benchmarked",
+      "paragraphs": [
+        "The original 40,100-byte sprite/board buffer is copied with one byte load, one byte store and a branch per byte. Word or multiple-register copying could reduce instruction count. This occurs between rounds rather than in every movement step, so its practical impact is limited."
+      ],
+      "severity": "inefficiency"
+    },
+    {
+      "title": "A capped ray reads one extra cell",
+      "lines": "1150–1210 · finddist",
+      "confidence": "Definite control-flow observation",
+      "paragraphs": [
+        "After counting 15 safe cells, finddist enters the loop once more, reads and tests the sixteenth, then notices the existing count equals dd and stops. It still returns15. Checking the cap before the next board access would avoid that extra read. Supplied board boundaries normally stop rays safely; this observation alone does not establish an out-of-bounds access."
+      ],
+      "severity": "inefficiency"
+    },
+    {
+      "title": "Surrender is loaded into a second reserved buffer",
+      "lines": "20; 190; 240 and !Run",
+      "confidence": "Definite source observation",
+      "paragraphs": [
+        "!Run loads Surrender into QTMTracker. The BASIC listing also reserves TUNE%, loads the same file there and stores its address at workspace offset548. No later instruction in this supplied listing reads offset548 or uses TUNE%. This second copy appears unnecessary; the title music uses QTM_Start on the launcher's already loaded tracker file."
+      ],
+      "severity": "redundancy"
+    },
+    {
+      "title": "The reteq return sequence is repeated",
+      "lines": "4870–5030 · testokay",
+      "confidence": "Definite duplication; low impact",
+      "paragraphs": [
+        "Three identical reteq blocks set EQ and restore R8/PC. They could share one label and return path. The repeated label is assigned to the same instructions' behaviour on each assembler pass, so the duplication is not itself evidence of an incorrect collision result."
+      ],
+      "severity": "redundancy"
+    },
+    {
+      "title": "Wrapping has no search limit",
+      "lines": "3780–3940 · letswrap",
+      "confidence": "Conditional risk; no ordinary supplied-game hang demonstrated",
+      "paragraphs": [
+        "The wrap loop skips zero and colours187/183 until it finds another colour, with coordinates wrapping at200. If every cell along that entire row or column is one of those skipped values, it loops forever. A finite search limit would make the routine robust to such a board, but this audit does not establish that the supplied board normally creates the condition."
+      ],
+      "severity": "design caveat"
+    },
+    {
+      "title": "Error cleanup does not release the frame handler",
+      "lines": "10; 17090–17380",
+      "confidence": "Conditional failure-path observation",
+      "paragraphs": [
+        "The normal exit disables the vertical-sync event and releases EventV. The initial ON ERROR handler simply disables itself and rethrows the error; it does not call stopframeclock. A runtime error after the handler is claimed can therefore leave the event handler installed while BASIC returns to error handling. This is a cleanup risk rather than a separately reproduced crash."
+      ],
+      "severity": "design caveat"
+    }
+  ],
+  "files": [
+    {
+      "name": "!Run,feb",
+      "bytes": 540,
+      "date": "1997-09-07"
+    },
+    {
+      "name": "!Sprites,ff9",
+      "bytes": 736,
+      "date": "1995-01-31"
+    },
+    {
+      "name": "Board,ff9",
+      "bytes": 40056,
+      "date": "1995-04-11"
+    },
+    {
+      "name": "DISPCODE,ffd",
+      "bytes": 43680,
+      "date": "1995-01-15"
+    },
+    {
+      "name": "Else/BoardBase,ff9",
+      "bytes": 40056,
+      "date": "1995-03-18"
+    },
+    {
+      "name": "Else/OldBoard,ff9",
+      "bytes": 40056,
+      "date": "1995-02-06"
+    },
+    {
+      "name": "Game,ffb",
+      "bytes": 28210,
+      "date": "1997-09-07"
+    },
+    {
+      "name": "QTMModule,ff8",
+      "bytes": 11704,
+      "date": "1995-06-30"
+    },
+    {
+      "name": "Sounds/crash,ffa",
+      "bytes": 7892,
+      "date": "1995-02-01"
+    },
+    {
+      "name": "Sounds/deleteline,ffa",
+      "bytes": 8916,
+      "date": "1995-02-01"
+    },
+    {
+      "name": "Sounds/pickuppill,ffa",
+      "bytes": 8148,
+      "date": "1995-02-01"
+    },
+    {
+      "name": "Sounds/selectpill,ffa",
+      "bytes": 4820,
+      "date": "1995-02-01"
+    },
+    {
+      "name": "Sounds/speed,ffa",
+      "bytes": 12756,
+      "date": "1995-02-01"
+    },
+    {
+      "name": "Sounds/start,ffa",
+      "bytes": 19156,
+      "date": "1995-02-01"
+    },
+    {
+      "name": "Sounds/steal,ffa",
+      "bytes": 17620,
+      "date": "1995-02-01"
+    },
+    {
+      "name": "Sounds/usemscpill,ffa",
+      "bytes": 8660,
+      "date": "1995-02-01"
+    },
+    {
+      "name": "Sounds/wrap,ffa",
+      "bytes": 7124,
+      "date": "1995-02-01"
+    },
+    {
+      "name": "Sprites,ff9",
+      "bytes": 60724,
+      "date": "1995-04-04"
+    },
+    {
+      "name": "Surrender,001",
+      "bytes": 35032,
+      "date": "1997-09-07"
+    },
+    {
+      "name": "Tech,ff7",
+      "bytes": 632,
+      "date": "1995-01-31"
+    }
+  ],
+  "sprites": [
+    {
+      "name": "!3dtron",
+      "file": "appSprites-3dtron.png",
+      "width": 34,
+      "height": 17,
+      "mode": 12,
+      "displayWidth": 34,
+      "displayHeight": 34,
+      "original": "!Sprites,ff9"
+    },
+    {
+      "name": "screendump",
+      "file": "Board-screendump.png",
+      "width": 200,
+      "height": 200,
+      "mode": 13,
+      "displayWidth": 200,
+      "displayHeight": 200,
+      "original": "Board,ff9"
+    },
+    {
+      "name": "screendump",
+      "file": "Else-BoardBase-screendump.png",
+      "width": 200,
+      "height": 200,
+      "mode": 13,
+      "displayWidth": 200,
+      "displayHeight": 200,
+      "original": "Else/BoardBase,ff9"
+    },
+    {
+      "name": "screendump",
+      "file": "Else-OldBoard-screendump.png",
+      "width": 200,
+      "height": 200,
+      "mode": 13,
+      "displayWidth": 200,
+      "displayHeight": 200,
+      "original": "Else/OldBoard,ff9"
+    },
+    {
+      "name": "gothrored",
+      "file": "Sprites-gothrored.png",
+      "width": 32,
+      "height": 16,
+      "mode": 13,
+      "displayWidth": 32,
+      "displayHeight": 16,
+      "original": "Sprites,ff9"
+    },
+    {
+      "name": "gothroyellow",
+      "file": "Sprites-gothroyellow.png",
+      "width": 32,
+      "height": 16,
+      "mode": 13,
+      "displayWidth": 32,
+      "displayHeight": 16,
+      "original": "Sprites,ff9"
+    },
+    {
+      "name": "ruboutred",
+      "file": "Sprites-ruboutred.png",
+      "width": 32,
+      "height": 16,
+      "mode": 13,
+      "displayWidth": 32,
+      "displayHeight": 16,
+      "original": "Sprites,ff9"
+    },
+    {
+      "name": "ruboutyellow",
+      "file": "Sprites-ruboutyellow.png",
+      "width": 32,
+      "height": 16,
+      "mode": 13,
+      "displayWidth": 32,
+      "displayHeight": 16,
+      "original": "Sprites,ff9"
+    },
+    {
+      "name": "speedup",
+      "file": "Sprites-speedup.png",
+      "width": 32,
+      "height": 16,
+      "mode": 13,
+      "displayWidth": 32,
+      "displayHeight": 16,
+      "original": "Sprites,ff9"
+    },
+    {
+      "name": "wrap",
+      "file": "Sprites-wrap.png",
+      "width": 32,
+      "height": 16,
+      "mode": 13,
+      "displayWidth": 32,
+      "displayHeight": 16,
+      "original": "Sprites,ff9"
+    },
+    {
+      "name": "gothroothers",
+      "file": "Sprites-gothroothers.png",
+      "width": 32,
+      "height": 16,
+      "mode": 13,
+      "displayWidth": 32,
+      "displayHeight": 16,
+      "original": "Sprites,ff9"
+    },
+    {
+      "name": "compass",
+      "file": "Sprites-compass.png",
+      "width": 32,
+      "height": 16,
+      "mode": 13,
+      "displayWidth": 32,
+      "displayHeight": 16,
+      "original": "Sprites,ff9"
+    },
+    {
+      "name": "finder",
+      "file": "Sprites-finder.png",
+      "width": 32,
+      "height": 16,
+      "mode": 13,
+      "displayWidth": 32,
+      "displayHeight": 16,
+      "original": "Sprites,ff9"
+    },
+    {
+      "name": "logo",
+      "file": "Sprites-logo.png",
+      "width": 297,
+      "height": 110,
+      "mode": 13,
+      "displayWidth": 297,
+      "displayHeight": 110,
+      "original": "Sprites,ff9"
+    },
+    {
+      "name": "pressfire",
+      "file": "Sprites-pressfire.png",
+      "width": 40,
+      "height": 9,
+      "mode": 13,
+      "displayWidth": 40,
+      "displayHeight": 9,
+      "original": "Sprites,ff9"
+    },
+    {
+      "name": "f0",
+      "file": "Sprites-f0.png",
+      "width": 31,
+      "height": 31,
+      "mode": 13,
+      "displayWidth": 31,
+      "displayHeight": 31,
+      "original": "Sprites,ff9"
+    },
+    {
+      "name": "f1",
+      "file": "Sprites-f1.png",
+      "width": 31,
+      "height": 31,
+      "mode": 13,
+      "displayWidth": 31,
+      "displayHeight": 31,
+      "original": "Sprites,ff9"
+    },
+    {
+      "name": "f2",
+      "file": "Sprites-f2.png",
+      "width": 31,
+      "height": 31,
+      "mode": 13,
+      "displayWidth": 31,
+      "displayHeight": 31,
+      "original": "Sprites,ff9"
+    },
+    {
+      "name": "f3",
+      "file": "Sprites-f3.png",
+      "width": 31,
+      "height": 31,
+      "mode": 13,
+      "displayWidth": 31,
+      "displayHeight": 31,
+      "original": "Sprites,ff9"
+    },
+    {
+      "name": "e0",
+      "file": "Sprites-e0.png",
+      "width": 31,
+      "height": 31,
+      "mode": 13,
+      "displayWidth": 31,
+      "displayHeight": 31,
+      "original": "Sprites,ff9"
+    },
+    {
+      "name": "e1",
+      "file": "Sprites-e1.png",
+      "width": 31,
+      "height": 31,
+      "mode": 13,
+      "displayWidth": 31,
+      "displayHeight": 31,
+      "original": "Sprites,ff9"
+    },
+    {
+      "name": "e2",
+      "file": "Sprites-e2.png",
+      "width": 31,
+      "height": 31,
+      "mode": 13,
+      "displayWidth": 31,
+      "displayHeight": 31,
+      "original": "Sprites,ff9"
+    },
+    {
+      "name": "e3",
+      "file": "Sprites-e3.png",
+      "width": 31,
+      "height": 31,
+      "mode": 13,
+      "displayWidth": 31,
+      "displayHeight": 31,
+      "original": "Sprites,ff9"
+    },
+    {
+      "name": "steal",
+      "file": "Sprites-steal.png",
+      "width": 32,
+      "height": 16,
+      "mode": 13,
+      "displayWidth": 32,
+      "displayHeight": 16,
+      "original": "Sprites,ff9"
+    }
+  ],
+  "audio": [
+    {
+      "name": "crash",
+      "label": "Crash",
+      "samples": 5632,
+      "offset": 2248,
+      "recordedRate": 10000,
+      "file": "crash.wav",
+      "native": "crash-native.wav",
+      "pitch": "1800",
+      "increment": 143,
+      "seconds": 0.4839917438679019,
+      "effectiveRate": 11637.369791666666
+    },
+    {
+      "name": "deleteline",
+      "label": "Delete trail",
+      "samples": 6656,
+      "offset": 2248,
+      "recordedRate": 10000,
+      "file": "deleteline.wav",
+      "native": "deleteline-native.wav",
+      "pitch": "1800",
+      "increment": 143,
+      "seconds": 0.5719771516344262,
+      "effectiveRate": 11637.369791666666
+    },
+    {
+      "name": "pickuppill",
+      "label": "Pick up a pill",
+      "samples": 5888,
+      "offset": 2248,
+      "recordedRate": 10000,
+      "file": "pickuppill.wav",
+      "native": "pickuppill-native.wav",
+      "pitch": "1800",
+      "increment": 143,
+      "seconds": 0.5059760956175299,
+      "effectiveRate": 11637.369791666666
+    },
+    {
+      "name": "selectpill",
+      "label": "Select a pill",
+      "samples": 2560,
+      "offset": 2248,
+      "recordedRate": 10000,
+      "file": "selectpill.wav",
+      "native": "selectpill-native.wav",
+      "pitch": "1800",
+      "increment": 143,
+      "seconds": 0.2199875198003168,
+      "effectiveRate": 11637.369791666666
+    },
+    {
+      "name": "speed",
+      "label": "Speed",
+      "samples": 10496,
+      "offset": 2248,
+      "recordedRate": 10000,
+      "file": "speed.wav",
+      "native": "speed-native.wav",
+      "pitch": "1800",
+      "increment": 143,
+      "seconds": 0.9019824317189075,
+      "effectiveRate": 11637.369791666666
+    },
+    {
+      "name": "start",
+      "label": "Round start",
+      "samples": 16896,
+      "offset": 2248,
+      "recordedRate": 14000,
+      "file": "start.wav",
+      "native": "start-native.wav",
+      "pitch": "1800",
+      "increment": 143,
+      "seconds": 1.4519272308356934,
+      "effectiveRate": 11637.369791666666
+    },
+    {
+      "name": "steal",
+      "label": "Steal a pill",
+      "samples": 15360,
+      "offset": 2248,
+      "recordedRate": 16000,
+      "file": "steal.wav",
+      "native": "steal-native.wav",
+      "pitch": "1800",
+      "increment": 143,
+      "seconds": 1.3199251188019008,
+      "effectiveRate": 11637.369791666666
+    },
+    {
+      "name": "usemscpill",
+      "label": "Use a pill",
+      "samples": 6400,
+      "offset": 2248,
+      "recordedRate": 10000,
+      "file": "usemscpill.wav",
+      "native": "usemscpill-native.wav",
+      "pitch": "1800",
+      "increment": 143,
+      "seconds": 0.5499927998847982,
+      "effectiveRate": 11637.369791666666
+    },
+    {
+      "name": "wrap",
+      "label": "Wrap around",
+      "samples": 4864,
+      "offset": 2248,
+      "recordedRate": 11000,
+      "file": "wrap.wav",
+      "native": "wrap-native.wav",
+      "pitch": "1800",
+      "increment": 143,
+      "seconds": 0.4179906878510056,
+      "effectiveRate": 11637.369791666666
+    }
+  ]
+}

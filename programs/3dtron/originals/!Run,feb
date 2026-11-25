@@ -1,0 +1,24 @@
+Run <Obey$Dir>.QTMModule
+QTMLoad <Obey$Dir>.Surrender
+Run <Obey$Dir>.Sounds.crash
+Run <Obey$Dir>.Sounds.deleteline
+Run <Obey$Dir>.Sounds.pickuppill
+Run <Obey$Dir>.Sounds.selectpill
+Run <Obey$Dir>.Sounds.speed
+Run <Obey$Dir>.Sounds.start
+Run <Obey$Dir>.Sounds.steal
+Run <Obey$Dir>.Sounds.usemscpill
+Run <Obey$Dir>.Sounds.wrap
+WimpSlot 288k 288k
+Print <Obey$Dir>.Tech
+Run <Obey$Dir>.Game
+RMKILL QTMTracker
+RMKill crash
+RMKill deleteline
+RMKill pickuppill
+RMKill selectpill
+RMKill speed
+RMKill start
+RMKill steal
+RMKill usemscpill
+RMKill wrap

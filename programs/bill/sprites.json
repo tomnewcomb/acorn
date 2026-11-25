@@ -1,0 +1,332 @@
+[
+  {
+    "name": "!bill",
+    "file": "appSprites-bill.png",
+    "width": 16,
+    "height": 16,
+    "mode": 9,
+    "displayWidth": 16,
+    "displayHeight": 16,
+    "original": "!Sprites,ff9"
+  },
+  {
+    "name": "0",
+    "file": "Sprites-0.png",
+    "width": 16,
+    "height": 16,
+    "mode": 9,
+    "displayWidth": 16,
+    "displayHeight": 16,
+    "original": "Sprites,ff9"
+  },
+  {
+    "name": "1",
+    "file": "Sprites-1.png",
+    "width": 16,
+    "height": 16,
+    "mode": 9,
+    "displayWidth": 16,
+    "displayHeight": 16,
+    "original": "Sprites,ff9"
+  },
+  {
+    "name": "2",
+    "file": "Sprites-2.png",
+    "width": 16,
+    "height": 16,
+    "mode": 9,
+    "displayWidth": 16,
+    "displayHeight": 16,
+    "original": "Sprites,ff9"
+  },
+  {
+    "name": "3",
+    "file": "Sprites-3.png",
+    "width": 16,
+    "height": 16,
+    "mode": 9,
+    "displayWidth": 16,
+    "displayHeight": 16,
+    "original": "Sprites,ff9"
+  },
+  {
+    "name": "4",
+    "file": "Sprites-4.png",
+    "width": 16,
+    "height": 14,
+    "mode": 9,
+    "displayWidth": 16,
+    "displayHeight": 14,
+    "original": "Sprites,ff9"
+  },
+  {
+    "name": "5",
+    "file": "Sprites-5.png",
+    "width": 16,
+    "height": 16,
+    "mode": 9,
+    "displayWidth": 16,
+    "displayHeight": 16,
+    "original": "Sprites,ff9"
+  },
+  {
+    "name": "6",
+    "file": "Sprites-6.png",
+    "width": 14,
+    "height": 16,
+    "mode": 9,
+    "displayWidth": 14,
+    "displayHeight": 16,
+    "original": "Sprites,ff9"
+  },
+  {
+    "name": "7",
+    "file": "Sprites-7.png",
+    "width": 16,
+    "height": 13,
+    "mode": 9,
+    "displayWidth": 16,
+    "displayHeight": 13,
+    "original": "Sprites,ff9"
+  },
+  {
+    "name": "8",
+    "file": "Sprites-8.png",
+    "width": 12,
+    "height": 16,
+    "mode": 9,
+    "displayWidth": 12,
+    "displayHeight": 16,
+    "original": "Sprites,ff9"
+  },
+  {
+    "name": "9",
+    "file": "Sprites-9.png",
+    "width": 12,
+    "height": 16,
+    "mode": 9,
+    "displayWidth": 12,
+    "displayHeight": 16,
+    "original": "Sprites,ff9"
+  },
+  {
+    "name": "10",
+    "file": "Sprites-10.png",
+    "width": 12,
+    "height": 16,
+    "mode": 9,
+    "displayWidth": 12,
+    "displayHeight": 16,
+    "original": "Sprites,ff9"
+  },
+  {
+    "name": "11",
+    "file": "Sprites-11.png",
+    "width": 12,
+    "height": 16,
+    "mode": 9,
+    "displayWidth": 12,
+    "displayHeight": 16,
+    "original": "Sprites,ff9"
+  },
+  {
+    "name": "12",
+    "file": "Sprites-12.png",
+    "width": 16,
+    "height": 16,
+    "mode": 9,
+    "displayWidth": 16,
+    "displayHeight": 16,
+    "original": "Sprites,ff9"
+  },
+  {
+    "name": "13",
+    "file": "Sprites-13.png",
+    "width": 12,
+    "height": 16,
+    "mode": 9,
+    "displayWidth": 12,
+    "displayHeight": 16,
+    "original": "Sprites,ff9"
+  },
+  {
+    "name": "14",
+    "file": "Sprites-14.png",
+    "width": 16,
+    "height": 16,
+    "mode": 9,
+    "displayWidth": 16,
+    "displayHeight": 16,
+    "original": "Sprites,ff9"
+  },
+  {
+    "name": "15",
+    "file": "Sprites-15.png",
+    "width": 11,
+    "height": 16,
+    "mode": 9,
+    "displayWidth": 11,
+    "displayHeight": 16,
+    "original": "Sprites,ff9"
+  },
+  {
+    "name": "16",
+    "file": "Sprites-16.png",
+    "width": 16,
+    "height": 16,
+    "mode": 9,
+    "displayWidth": 16,
+    "displayHeight": 16,
+    "original": "Sprites,ff9"
+  },
+  {
+    "name": "17",
+    "file": "Sprites-17.png",
+    "width": 16,
+    "height": 16,
+    "mode": 9,
+    "displayWidth": 16,
+    "displayHeight": 16,
+    "original": "Sprites,ff9"
+  },
+  {
+    "name": "18",
+    "file": "Sprites-18.png",
+    "width": 16,
+    "height": 16,
+    "mode": 9,
+    "displayWidth": 16,
+    "displayHeight": 16,
+    "original": "Sprites,ff9"
+  },
+  {
+    "name": "19",
+    "file": "Sprites-19.png",
+    "width": 16,
+    "height": 16,
+    "mode": 9,
+    "displayWidth": 16,
+    "displayHeight": 16,
+    "original": "Sprites,ff9"
+  },
+  {
+    "name": "23",
+    "file": "Sprites-23.png",
+    "width": 12,
+    "height": 16,
+    "mode": 9,
+    "displayWidth": 12,
+    "displayHeight": 16,
+    "original": "Sprites,ff9"
+  },
+  {
+    "name": "22",
+    "file": "Sprites-22.png",
+    "width": 12,
+    "height": 16,
+    "mode": 9,
+    "displayWidth": 12,
+    "displayHeight": 16,
+    "original": "Sprites,ff9"
+  },
+  {
+    "name": "21",
+    "file": "Sprites-21.png",
+    "width": 12,
+    "height": 16,
+    "mode": 9,
+    "displayWidth": 12,
+    "displayHeight": 16,
+    "original": "Sprites,ff9"
+  },
+  {
+    "name": "20",
+    "file": "Sprites-20.png",
+    "width": 12,
+    "height": 16,
+    "mode": 9,
+    "displayWidth": 12,
+    "displayHeight": 16,
+    "original": "Sprites,ff9"
+  },
+  {
+    "name": "24",
+    "file": "Sprites-24.png",
+    "width": 16,
+    "height": 16,
+    "mode": 9,
+    "displayWidth": 16,
+    "displayHeight": 16,
+    "original": "Sprites,ff9"
+  },
+  {
+    "name": "25",
+    "file": "Sprites-25.png",
+    "width": 16,
+    "height": 16,
+    "mode": 9,
+    "displayWidth": 16,
+    "displayHeight": 16,
+    "original": "Sprites,ff9"
+  },
+  {
+    "name": "26",
+    "file": "Sprites-26.png",
+    "width": 16,
+    "height": 16,
+    "mode": 9,
+    "displayWidth": 16,
+    "displayHeight": 16,
+    "original": "Sprites,ff9"
+  },
+  {
+    "name": "27",
+    "file": "Sprites-27.png",
+    "width": 16,
+    "height": 15,
+    "mode": 9,
+    "displayWidth": 16,
+    "displayHeight": 15,
+    "original": "Sprites,ff9"
+  },
+  {
+    "name": "28",
+    "file": "Sprites-28.png",
+    "width": 16,
+    "height": 15,
+    "mode": 9,
+    "displayWidth": 16,
+    "displayHeight": 15,
+    "original": "Sprites,ff9"
+  },
+  {
+    "name": "29",
+    "file": "Sprites-29.png",
+    "width": 16,
+    "height": 15,
+    "mode": 9,
+    "displayWidth": 16,
+    "displayHeight": 15,
+    "original": "Sprites,ff9"
+  },
+  {
+    "name": "30",
+    "file": "Sprites-30.png",
+    "width": 16,
+    "height": 15,
+    "mode": 9,
+    "displayWidth": 16,
+    "displayHeight": 15,
+    "original": "Sprites,ff9"
+  },
+  {
+    "name": "bill",
+    "file": "Sprites-bill.png",
+    "width": 159,
+    "height": 38,
+    "mode": 12,
+    "displayWidth": 159,
+    "displayHeight": 76,
+    "original": "Sprites,ff9"
+  }
+]

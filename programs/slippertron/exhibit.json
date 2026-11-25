@@ -1,0 +1,285 @@
+{
+  "sources": [
+    {
+      "label": "!RunImage",
+      "url": "RunImage.txt",
+      "name": "!RunImage,ffb",
+      "lines": 259,
+      "annotations": [
+        {
+          "start": 10,
+          "title": "Startup, custom characters and game state",
+          "group": "Startup",
+          "paragraphs": [
+            "The title identifies this game as Slippertron by Thomas Newcomb. TG%=5 fixes a match at five rounds. MODE 9 supplies a 320×256, 16-colour display; the text grid is 40×32 cells. VDU 23 defines the checkerboard border, round trail segment and four directional heads.",
+            "K%(player,direction) holds internal keyboard codes, not ASCII. W%(player,slot,axis) stores trail coordinates for two players and 1,201 circular-buffer slots each. H% and T% identify the head and tail, D% stores the x/y direction and SC% the match scores. S% is the loaded sprite area.",
+            "The code alters keyboard repeat and cursor-key handling with FX calls. Sprites are loaded relative to <Obey$Dir>, keeping the original application directory self-contained."
+          ]
+        },
+        {
+          "start": 160,
+          "title": "Vector title coordinates",
+          "group": "Title sequence",
+          "paragraphs": [
+            "Groups of four DATA values are endpoints of line segments spelling the title. A zero quadruple changes colour; the all-ones quadruple ends the list. Coordinates are later scaled to the screen rather than stored as a bitmap."
+          ]
+        },
+        {
+          "start": 390,
+          "title": "Background zoom and first credit",
+          "group": "Title sequence",
+          "paragraphs": [
+            "PROC SCALE draws the same background sprite at increasing size. N grows by N/15 on each pass, making the zoom accelerate before stopping near full size. The credit at line450 explicitly names Thomas Newcomb.",
+            "The program waits for the keyboard to be released, displays the credit, then waits for a fresh press and release before the main menu."
+          ]
+        },
+        {
+          "start": 530,
+          "title": "Menu lettering and start instructions",
+          "group": "Title sequence",
+          "paragraphs": [
+            "PROC PRINT renders text with per-character scale factors. Here it places the title, decorative lines and instructions at different sizes. The menu offers one player against the computer, two local players, or R to redefine keys."
+          ]
+        },
+        {
+          "start": 650,
+          "title": "Animated vector title",
+          "group": "Title sequence",
+          "paragraphs": [
+            "The DATA segments are transformed from their small design coordinates into screen positions. SP%=20 gives each segment twenty animation steps; PROC P interpolates its starting point and length. GCOL 3 uses exclusive-OR drawing so the same intermediate line can be drawn twice to erase it.",
+            "FN TESTKEYS is polled between line animations so a game can start before the whole title has finished. The sentinel branches to the idle menu loop."
+          ]
+        },
+        {
+          "start": 860,
+          "title": "PROC P — interpolate one title segment",
+          "group": "Title sequence",
+          "paragraphs": [
+            "N%/SP% controls both the segment length and its journey from the off-screen starting point. Drawing twice in exclusive-OR mode removes each intermediate frame. The final frame is drawn once and remains visible."
+          ]
+        },
+        {
+          "start": 900,
+          "title": "PROC PRINT — scaled character plotting",
+          "group": "Drawing",
+          "paragraphs": [
+            "The text is drawn one character at a time through OS_SpriteOp 51, the scaled-character operation. The 16-byte block contains x numerator, y numerator and two denominators of32. Scale and position interpolate between the supplied endpoints as the character index increases.",
+            "This produces the stretched and slanted menu lettering without a separate font bitmap for each size. The original strings, including the promotional subtitle, are preserved in the source."
+          ]
+        },
+        {
+          "start": 980,
+          "title": "Idle menu polling",
+          "group": "Title sequence",
+          "paragraphs": [
+            "Once all vector title segments are complete, this small loop polls FN TESTKEYS once per display refresh. A successful action returns to the menu sequence so the screen can be redrawn."
+          ]
+        },
+        {
+          "start": 1010,
+          "title": "FN TESTKEYS — menu actions",
+          "group": "Input",
+          "paragraphs": [
+            "INKEY$ 0 reads a waiting character without blocking; FX15 clears queued input. R runs the key-definition screen. 1 and2 select either one human plus the computer or two humans, then call PROC PLAY. The function returns TRUE after any of those actions so the title loop can restart."
+          ]
+        },
+        {
+          "start": 1080,
+          "title": "FN HEAD — select a directional head",
+          "group": "Drawing",
+          "paragraphs": [
+            "A unit direction vector chooses one of the four custom characters defined at startup. The character bytes are graphics glyphs, not accented text intended for reading. Each glyph has the appropriate face direction."
+          ]
+        },
+        {
+          "start": 1130,
+          "title": "Direction labels",
+          "group": "Input",
+          "paragraphs": [
+            "These four DATA strings supply the key-redefinition prompts in the same order as the K% array: Up, Down, Left, Right."
+          ]
+        },
+        {
+          "start": 1140,
+          "title": "PROC REDEFINE — capture both players’ keys",
+          "group": "Input",
+          "paragraphs": [
+            "Each player is asked for four keys. INKEY -129 scans the keyboard, returning255 when no key is held; the routine waits for release before accepting the next press. The saved code is scan+1 because the later negative-INKEY calls use that numbering.",
+            "There is no duplicate-key check, so two directions or players can intentionally or accidentally share a key."
+          ]
+        },
+        {
+          "start": 1280,
+          "title": "PROC PLAY — match and player introduction",
+          "group": "Match setup",
+          "paragraphs": [
+            "A local error handler routes Escape back to the menu. Scores reset when a new match starts; the green player and either yellow player or computer are introduced with palette animation. TIME is measured in centiseconds, so the introduction runs for about two seconds."
+          ]
+        },
+        {
+          "start": 1390,
+          "title": "Draw the arena and initialise the ring buffers",
+          "group": "Match setup",
+          "paragraphs": [
+            "The arena border occupies column0/39 and row0/29; playable coordinates are x1–38 and y1–28. A single background sprite is tiled in six positions. The score and round number sit below the playfield.",
+            "Each trail starts with H%=2 and T%=0. Initial slots contain a harmless position near the lower-right edge; the two heads are then placed at(5,5) and(34,23), heading right and left. WW=5 sets the initial timing threshold and BO%=1001 becomes a displayed1000 at the first turn."
+          ]
+        },
+        {
+          "start": 1590,
+          "title": "Human movement, tail removal and wrapping",
+          "group": "Movement",
+          "paragraphs": [
+            "I% cycles through0–9. Nine turns erase one tail cell and advance T%; every tenth turn retains the tail, gradually growing the trail. H% and T% wrap to0 after1200, so the coordinate storage is circular.",
+            "Key handling rejects an immediate reversal. POINT samples the centre of the next character cell from the screen itself: colour1 is an arena edge, while colours2–4 are collisions. Crossing an edge relocates the rider to the opposite interior edge.",
+            "The proposed head slot is committed, checked and drawn. A collision restores the old H% and zeros the direction. WW falls gradually, the bonus drops toward a floor of100, and single-player mode then invokes PROC COMP. Because players update sequentially, the first mover gets an advantage if both aim for one empty cell."
+          ]
+        },
+        {
+          "start": 1880,
+          "title": "Award the round and advance the match",
+          "group": "Scoring",
+          "paragraphs": [
+            "A stopped direction marks a dead rider. The opponent receives the current bonus; a palette pulse accompanies the result. After TG% rounds the program shows final scores, otherwise it rebuilds the arena without resetting the match totals."
+          ]
+        },
+        {
+          "start": 2000,
+          "title": "PROC COMP — local obstacle avoidance",
+          "group": "Computer player",
+          "paragraphs": [
+            "The computer uses the same tail-erasing circular buffer, but chooses headings instead of reading keys. It does not pursue the human or search the maze: its only collision look-ahead is the adjacent candidate cell, read with POINT.",
+            "At line2030 the random-turn threshold is25 when both direction components match the human and5 otherwise. BBC BASIC represents TRUE as−1, so multiplying the comparison by−20 adds20. Since RND(100) returns1–100 and the comparison is strict, the actual chances are24% and4%. A random change chooses uniformly among the four headings.",
+            "If the next cell is blocked, it chooses a random starting heading once and then rotates clockwise through alternatives. After four failed alternatives it kills the computer. An edge can wrap, followed by a second occupancy check at the opposite side.",
+            "The occupied-wrap retry at2260 does not roll back the already incremented H%. That can leave a phantom coordinate in the trail buffer, later causing the tail eraser to remove a live trail cell; see Discovered bugs."
+          ]
+        },
+        {
+          "start": 2300,
+          "title": "PROC KILL — dim a crashed rider",
+          "group": "Drawing",
+          "paragraphs": [
+            "Death changes the relevant palette entry to a dimmer shade. The existing head and trail pixels therefore darken immediately without being redrawn. Movement code separately zeros the direction vector; this procedure itself only changes colour."
+          ]
+        },
+        {
+          "start": 2340,
+          "title": "PROC RUB — restore background under one cell",
+          "group": "Drawing",
+          "paragraphs": [
+            "VDU24 clips graphics to exactly one text cell. Integer division selects the corresponding background tile, which is plotted through OS_SpriteOp. The clip prevents the rest of the tile from overwriting live trails. VDU26 restores the full graphics window afterward.",
+            "This is why the game stores old trail coordinates even though collision detection reads the rendered pixels: it needs to know which background cell to reveal as the tail slides forward."
+          ]
+        },
+        {
+          "start": 2390,
+          "title": "Escape and runtime errors",
+          "group": "Error handling",
+          "paragraphs": [
+            "The handler restores the full graphics window. Escape is BBC BASIC error17 and returns to the menu; other errors print REPORT$ and the original line number, then stop. Keyboard settings changed on entry are not explicitly restored here."
+          ]
+        },
+        {
+          "start": 2420,
+          "title": "PROC SCALE — scale the background sprite",
+          "group": "Drawing",
+          "paragraphs": [
+            "The scaling block sets x and y multipliers relative to the sprite’s source dimensions607×224. OS_SpriteOp 52 plots the scaled sprite by address in the private sprite area. The routine serves both the opening zoom and the final-score decoration."
+          ]
+        },
+        {
+          "start": 2490,
+          "title": "PROC FINALSCORES — match totals and winner pulse",
+          "group": "Scoring",
+          "paragraphs": [
+            "The final page displays both accumulated totals and labels the second participant as Player2 or Computer. The larger background sprite fills the top of the page.",
+            "The winner’s palette entry pulses indefinitely; if totals are tied, both entries pulse. Escape reaches the match error handler and returns to the menu. No sampled or synthesised sound commands occur in this listing."
+          ]
+        }
+      ]
+    }
+  ],
+  "bugs": [
+    {
+      "severity": "Logical",
+      "title": "Occupied wrap retries leave a phantom trail entry",
+      "lines": "2200–2260",
+      "confidence": "Confirmed by control-flow inspection and a reduced coordinate simulation",
+      "paragraphs": [
+        "The computer advances H%(1) and stores the wrapped destination before checking whether that opposite-edge cell is occupied. A blocked destination jumps back to the direction search without restoring H%. The successful retry then advances H% again, leaving the first, blocked coordinate in the circular buffer.",
+        "For example, heading right from (38, 10) toward occupied (1, 10) commits one slot; choosing free down (38, 11) commits the next. When the tail reaches the skipped slot, PROC RUB can erase a still-live trail at (1, 10). Validate the wrapped destination before advancing H%, or restore the previous index on retry."
+      ]
+    },
+    {
+      "severity": "Logical",
+      "title": "The increasing-speed delay has no minimum",
+      "lines": "1410, 1810–1860",
+      "confidence": "Confirmed in the arithmetic; long-round impact is not emulator-tested",
+      "paragraphs": [
+        "WW begins at 5 centiseconds and falls by .005 each turn, with no lower bound. After roughly 1,000 turns it reaches or passes zero. The TIME waits then cease to regulate the loop, making further speed dependent on machine and interpreter performance. A minimum delay would keep a defined upper speed."
+      ]
+    },
+    {
+      "severity": "Design caveat",
+      "title": "Sequential movement favours the first player",
+      "lines": "1600–1820",
+      "confidence": "Confirmed update order; intent is unknown",
+      "paragraphs": [
+        "Player 0 moves and paints before player 1 or the computer. When both aim at the same previously empty cell, the first player occupies it and the second collides with it. There is no simultaneous head-on collision resolution. This may be a deliberate simplification rather than an accidental bug."
+      ]
+    },
+    {
+      "severity": "Cleanup",
+      "title": "Global keyboard settings are not restored on error",
+      "lines": "30–40, 150, 2390–2410",
+      "confidence": "Confirmed missing cleanup in the listing",
+      "paragraphs": [
+        "Startup changes key repeat and cursor-key treatment through FX11, FX12 and FX4. Escape returns to the menu, but a different error reports and ends without restoring those settings. This can leave desktop keyboard behaviour altered after an abnormal exit."
+      ]
+    }
+  ],
+  "files": [
+    {
+      "name": "!Run,feb",
+      "bytes": 44,
+      "date": "1992-03-03"
+    },
+    {
+      "name": "!RunImage,ffb",
+      "bytes": 8004,
+      "date": "1995-01-21"
+    },
+    {
+      "name": "!Sprites,ff9",
+      "bytes": 396,
+      "date": "1992-03-03"
+    },
+    {
+      "name": "Sprites,ff9",
+      "bytes": 4312,
+      "date": "1992-03-03"
+    }
+  ],
+  "sprites": [
+    {
+      "name": "!slipptron",
+      "file": "appSprites-slipptron.png",
+      "width": 34,
+      "height": 17,
+      "mode": 12,
+      "displayWidth": 34,
+      "displayHeight": 34,
+      "original": "!Sprites,ff9"
+    },
+    {
+      "name": "background",
+      "file": "Sprites-background.png",
+      "width": 152,
+      "height": 56,
+      "mode": 9,
+      "displayWidth": 152,
+      "displayHeight": 56,
+      "original": "Sprites,ff9"
+    }
+  ]
+}

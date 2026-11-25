@@ -1,6 +1,6 @@
 /* Presentation-only BBC BASIC / ARM lexer. The archival text is never mutated. */
 const ArchiveSource = (() => {
-  const words = (`ENDWHILE ENDPROC OTHERWISE ENDCASE RECTANGLE COLOUR STRING$ REPEAT RESTORE REPORT$ REPORT RETURN INKEY$ INKEY GET$ GET BGET BPUT OPENOUT OPENIN CLOSE INPUT PRINT LOCAL ERROR ENDIF WHILE UNTIL FALSE TRUE THEN ELSE WHEN CASE IF STEP NEXT FOR TO OF ON DEF PROC FN DIM MODE GCOL CIRCLE FILL MOVE LINE MOUSE OFF WAIT VDU TAB SYS OSCLI CALL OPT EVAL INSTR LEFT$ RIGHT$ MID$ STR$ CHR$ ASC LEN INT ABS SGN VAL EOF ERL ERR NOT AND EOR OR DIV MOD SWAP CLS END`).split(/\s+/).sort((a,b)=>b.length-a.length);
+  const words = (`DRAWBY DRAW ELLIPSE PLOT POINT RND SGN SIN COS TAN GOTO GOSUB READ DATA TIME ENVELOPE SOUND VOICE STEREO ADVAL WIDTH CLG BY ENDWHILE ENDPROC OTHERWISE ENDCASE RECTANGLE COLOUR STRING$ REPEAT RESTORE REPORT$ REPORT RETURN INKEY$ INKEY GET$ GET BGET BPUT OPENOUT OPENIN CLOSE INPUT PRINT LOCAL ERROR ENDIF WHILE UNTIL FALSE TRUE THEN ELSE WHEN CASE IF STEP NEXT FOR TO OF ON DEF PROC FN DIM MODE GCOL CIRCLE FILL MOVE LINE MOUSE OFF WAIT VDU TAB SYS OSCLI CALL OPT EVAL INSTR LEFT$ RIGHT$ MID$ STR$ CHR$ ASC LEN INT ABS SGN VAL EOF ERL ERR NOT AND EOR OR DIV MOD SWAP CLS END`).split(/\s+/).sort((a,b)=>b.length-a.length);
   const wordOperators = new Set(['AND','OR','EOR','DIV','MOD','NOT']);
   const armWords = new Set('STMFD MOV ORR SWI CMP LDMHIFD MUL ADD BHI BLS LDMFD LDR LDRB STRB SUBS BNE TEQP EQUD LSR LSL AND EQUS EQUB ALIGN ADDCC B ADR ORRS STR EOR ANDS ORRNE BIC'.split(' '));
   const prefixContexts = new Set(['(', '[', '{', ',', ';', ':', 'THEN', 'ELSE', 'TO', 'STEP', 'WHEN']);
@@ -33,7 +33,7 @@ const ArchiveSource = (() => {
         const register=/^(?:R(?:1[0-5]|[0-9])|PC|LR|SP)(?![A-Za-z0-9_])/.exec(rest);
         if(register){add(register[0],'register');continue}
         const instruction=/^[A-Z]+/.exec(rest);
-        if(instruction&&armWords.has(instruction[0])&&(!previous||previous.kind==='label'||previous.text===':'||['LSR','LSL'].includes(instruction[0]))){add(instruction[0],'instruction');continue}
+        if(instruction&&(armWords.has(instruction[0])||/^(?:(?:ADC|ADD|ADR|AND|BIC|CMN|CMP|EOR|MLA|MOV|MUL|MVN|ORR|RSB|RSC|SBC|SUB|TEQ|TST)(?:EQ|NE|CS|CC|MI|PL|VS|VC|HI|LS|GE|LT|GT|LE|AL)?S?|(?:LDR|STR)(?:EQ|NE|CS|CC|MI|PL|VS|VC|HI|LS|GE|LT|GT|LE|AL)?B?|(?:LDM|STM)(?:EQ|NE|CS|CC|MI|PL|VS|VC|HI|LS|GE|LT|GT|LE|AL)?(?:FD|ED|FA|EA|IA|IB|DA|DB)?|BL?(?:EQ|NE|CS|CC|MI|PL|VS|VC|HI|LS|GE|LT|GT|LE|AL)?|SWI(?:EQ|NE|CS|CC|MI|PL|VS|VC|HI|LS|GE|LT|GT|LE|AL)?)$/.test(instruction[0]))&&(!previous||previous.kind==='label'||previous.text===':'||['LSR','LSL'].includes(instruction[0]))){add(instruction[0],'instruction');continue}
       }
       const number=/^(?:&[0-9A-Fa-f]+|%[01]+|(?:\d+(?:\.\d*)?|\.\d+)(?:E[+-]?\d+)?)/.exec(rest);
       if(number){add(number[0],'number');continue}

@@ -1,0 +1,22 @@
+[
+  {
+    "name": "!slipptron",
+    "file": "appSprites-slipptron.png",
+    "width": 34,
+    "height": 17,
+    "mode": 12,
+    "displayWidth": 34,
+    "displayHeight": 34,
+    "original": "!Sprites,ff9"
+  },
+  {
+    "name": "background",
+    "file": "Sprites-background.png",
+    "width": 152,
+    "height": 56,
+    "mode": 9,
+    "displayWidth": 152,
+    "displayHeight": 56,
+    "original": "Sprites,ff9"
+  }
+]

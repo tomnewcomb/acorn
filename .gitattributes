@@ -1,0 +1,6 @@
+# Keep supplied RISC OS files byte-for-byte, including Obey-file line endings.
+programs/*/originals/** -text
+# Decoded listings deliberately retain stored spaces on numbered blank lines.
+programs/3dtron/Game.txt -text whitespace=-blank-at-eol
+programs/bill/*.txt -text whitespace=-blank-at-eol
+programs/slippertron/RunImage.txt -text whitespace=-blank-at-eol

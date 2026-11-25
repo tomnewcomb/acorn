@@ -1,0 +1,784 @@
+{
+  "sources": [
+    {
+      "label": "!RunImage",
+      "url": "RunImage.txt",
+      "name": "!RunImage,ffb",
+      "lines": 217,
+      "annotations": [
+        {
+          "start": 10,
+          "group": "Startup",
+          "title": "Display, workspace and key bindings",
+          "paragraphs": [
+            "The game selects MODE 9, disables the text cursor and reserves space for sprites, a 20 × 15 map, NPC records, key codes and three screen addresses. DIM bounds are inclusive: P%(20,5) reserves 21 records of six integers, although the movement loop later updates only four.",
+            "SCR%(0..2) identify three screen banks. The third holds the background; the other two alternate as working and displayed screens. SP%=8 is player horizontal movement, FSP%=32 the terminal falling speed, JMP%=15 the jump impulse and NRMFSP%=2 the gravity decrement."
+          ]
+        },
+        {
+          "start": 110,
+          "group": "Drawing",
+          "title": "Assemble the background copier",
+          "paragraphs": [
+            "Two assembler passes generate a short ARM routine. R0 reads the stored address of background screen three; R1 is supplied by BASIC through B%. Each iteration transfers ten registers, or 40 bytes, until all 40 KiB have been copied. The routine returns through R14.",
+            "This restores the complete background before moving sprites are drawn. It is straightforward and avoids trails, at the cost of copying the whole screen every frame."
+          ]
+        },
+        {
+          "start": 250,
+          "group": "Startup",
+          "title": "Palette and title screen",
+          "paragraphs": [
+            "The supplied palette is sent as VDU data with *Print. SC%=-1 marks the absence of a previous score. PROC STARTSCREEN waits for the player to start or redefine keys."
+          ]
+        },
+        {
+          "start": 300,
+          "group": "Levels",
+          "title": "Load a 20 × 15 level",
+          "paragraphs": [
+            "LI%=2 counts down through three lives; LE%=1 selects the first level. P%()=3 makes all NPC records inactive initially. The level file contains 300 bytes: x is the outer loop and y the inner loop, so byte offset is x*15+y. Graphics y increases upwards.",
+            "Tile 3 records the exit location but is initially removed. Tiles 8–11 and 20–23 establish the player spawn; 12–15 create fast walkers, 16–19 slow walkers and 27–30 horizontal patrollers. NPC tiles become runtime records rather than ordinary static tiles.",
+            "P% fields are: 0 signed horizontal position (sign encodes heading), 1 vertical position, 2 kind/state (0 fast, 1 slow, 2 horizontal, 3 inactive), 3 fast-walker age, 4 original x and 5 original y. Spawn coordinates and age are used by kind 0. NA% counts records loaded."
+          ],
+          "fields": [
+            [
+              "P%(n,0)",
+              "Signed horizontal position in graphics units; its sign encodes heading. ABS gives the plotted x position."
+            ],
+            [
+              "P%(n,1)",
+              "Vertical position in graphics units."
+            ],
+            [
+              "P%(n,2)",
+              "Kind/state: 0 fast walker; 1 slow walker; 2 horizontal patroller; 3 inactive or transformed."
+            ],
+            [
+              "P%(n,3)",
+              "Age counter used by the fast walker’s random respawn test."
+            ],
+            [
+              "P%(n,4)",
+              "Original spawn x coordinate for a fast walker."
+            ],
+            [
+              "P%(n,5)",
+              "Original spawn y coordinate for a fast walker."
+            ]
+          ]
+        },
+        {
+          "start": 500,
+          "group": "Drawing",
+          "title": "Build the background and HUD",
+          "paragraphs": [
+            "All 300 static tiles are drawn into screen three. The HUD records Bill, Thomas’s credit, score, lives and level. PROC UPDATE selects the first displayed and working banks."
+          ]
+        },
+        {
+          "start": 580,
+          "group": "Main loop",
+          "title": "Restore the frame",
+          "paragraphs": [
+            "The error handler returns to the title screen on an error. TIME is reset for pacing, B% selects the destination bank and the assembled copier restores the static background. This B% variable is separate from the B%() array."
+          ]
+        },
+        {
+          "start": 610,
+          "group": "Player",
+          "title": "Horizontal movement, gravity and jumping",
+          "paragraphs": [
+            "The player occupies 48 × 64 graphics units within a 64-unit tile grid. Left and right movement test both vertical corners against solid tiles 1 and 2. Other tile types do not block player movement.",
+            "FL% determines support and fractional tile alignment. Positive MY% is upward movement; gravity subtracts 2 and falling speed is capped at -32. Jumping starts at +15 when grounded and with space above. The default jump and gravity values bring the player up by one tile."
+          ]
+        },
+        {
+          "start": 700,
+          "group": "Magic",
+          "title": "Animate creation or removal of a block",
+          "paragraphs": [
+            "OM% remembers the previous key state, so holding the key does not repeatedly create and destroy a block. PROC MAGIC begins a three-stage animation only when no previous animation is active.",
+            "Positive ST% creates a block, negative ST% removes one. The changing sprites are drawn on the working frame; the final static tile is committed to the background bank. Removal clears B%() at the final stage."
+          ]
+        },
+        {
+          "start": 770,
+          "group": "Main loop",
+          "title": "Door flight, pickups and player animation",
+          "paragraphs": [
+            "The collected key travels towards the stored exit over 16 updates. Once it arrives, the exit tile is restored in the static background and B%() becomes 3 at that location.",
+            "The player sprite cycles through four frames using horizontal position; FC% chooses its left or right orientation. Pickups are checked before enemies move, then the flying marker and NPCs are drawn."
+          ]
+        },
+        {
+          "start": 820,
+          "group": "Main loop",
+          "title": "Exit, pacing and death handling",
+          "paragraphs": [
+            "Overlap with the activated exit advances to the next level. The INKEY(0)=254 branch is a built-in level-selection shortcut. TIME>4 followed by WAIT controls frame pacing before screen banks are swapped.",
+            "Enemy contact or the suicide key invokes the death effect and decrements lives. With lives remaining the player returns to the original spawn and its map cell is cleared. Score and level persist until the title screen starts a new game."
+          ]
+        },
+        {
+          "start": 940,
+          "group": "Drawing",
+          "title": "PROC UPDATE — swap display banks",
+          "paragraphs": [
+            "OS_Byte 113 selects the display bank. SCRN%=3-SCRN% alternates between 1 and 2, and OS_Byte 112 selects the other bank for subsequent drawing. The static background remains in bank 3."
+          ]
+        },
+        {
+          "start": 970,
+          "group": "Magic",
+          "title": "PROC MAGIC — choose the target tile",
+          "paragraphs": [
+            "The target is one tile in front of the player, with vertical adjustment for partial tile overlap. Holding Down while grounded moves the target one tile lower.",
+            "Blank tile 0 becomes a solid editable block immediately in the map, with ST%=1 starting its visual animation. Tile 1 instead starts removal with ST%=-1. Permanent tile 2 and other objects are left alone. No explicit map-edge bounds check appears here."
+          ]
+        },
+        {
+          "start": 1050,
+          "group": "Pickups",
+          "title": "PROC PICKUP — inspect overlapped cells",
+          "paragraphs": [
+            "The player can overlap up to four tiles. Its 48-unit width determines whether the right-hand cell is included; a fractional vertical position adds the upper row. Each occupied tile is handed to PROC CHECKSQ."
+          ]
+        },
+        {
+          "start": 1100,
+          "group": "Pickups",
+          "title": "PROC CHECKSQ — score items and unlock the exit",
+          "paragraphs": [
+            "Tile 7 scores 50, tile 6 scores 10 and tile 5 scores 25. Tile 4 scores 100 and starts the travelling door marker. Collected cells are cleared from both the map and background.",
+            "X% and Y% are procedure parameters here, so PROC STARTDOOR sees the coordinates of the collected tile rather than the player’s graphics coordinates. BASIC parameter scoping is part of how the two routines share this position."
+          ]
+        },
+        {
+          "start": 1160,
+          "group": "Drawing",
+          "title": "PROC PRSCORE — update the background score",
+          "paragraphs": [
+            "The score is printed into background bank 3 so subsequent full-screen copies include it. The previous working bank is then restored."
+          ]
+        },
+        {
+          "start": 1210,
+          "group": "Drawing",
+          "title": "PROC SETNOWT — clear a collected cell",
+          "paragraphs": [
+            "The map entry becomes zero and sprite 0 replaces it in the background. Returning drawing to SCRN% keeps the main frame assembly on the working bank."
+          ]
+        },
+        {
+          "start": 1260,
+          "group": "Pickups",
+          "title": "PROC STARTDOOR — initialise the travelling marker",
+          "paragraphs": [
+            "The vector from the collected key’s tile to the exit is divided by 16 to obtain its per-update movement. DFX% and DFY% begin at the key location; DCC% counts the 16 steps."
+          ]
+        },
+        {
+          "start": 1300,
+          "group": "NPC logic",
+          "title": "PROC MOVEEM — horizontal patroller",
+          "paragraphs": [
+            "The routine always considers slots 0–3, even though the map loader counts NPCs with NA%. State 2 moves horizontally by eight units per update and does not apply gravity.",
+            "Heading is stored in the sign of P%(M%,0): ABS gives the plotted x coordinate, while signed increments and negation switch direction. Boundary sentinels and nonzero tiles cause turns. Animation uses four sprite frames, 27–30."
+          ]
+        },
+        {
+          "start": 1400,
+          "group": "NPC logic",
+          "title": "Slow walker — fall, walk or turn into a pickup",
+          "paragraphs": [
+            "State 1 falls by 16 units while between rows or when a tile-aligned walker has empty space underneath. Once aligned over a nonempty supporting tile, FN OORAGAIN causes it to become inactive state 3 and leaves collectible tile 5.",
+            "Otherwise it walks four units per update, reversing when the next map tile is nonzero. It uses sprites 16–19 and remains dangerous while its state is below 3."
+          ]
+        },
+        {
+          "start": 1510,
+          "group": "NPC logic",
+          "title": "Fast walker — gravity and occasional respawn",
+          "paragraphs": [
+            "State 0 uses the same ledge/fall test but walks at 16 units per update. Unlike the slow walker, landing does not transform it into a pickup. Sprites 12–15 animate with horizontal position.",
+            "Its age counter increases each update. The test compares that age against a freshly drawn 100+RND(1000) threshold. When it succeeds, the enemy returns to fields 4 and 5, its recorded spawn position, and age resets. This is not one timeout chosen at spawn."
+          ]
+        },
+        {
+          "start": 1630,
+          "group": "NPC logic",
+          "title": "Contact test and loop completion",
+          "paragraphs": [
+            "Any NPC with state below 3 kills the player when its 64 × 64 bounding box overlaps the player’s 48 × 64 box. State 3 is skipped, including unused slots and slow walkers already converted into collectibles."
+          ]
+        },
+        {
+          "start": 1670,
+          "group": "NPC logic",
+          "title": "PROC OUTOFROOM — transformation flash",
+          "paragraphs": [
+            "Sprite 25 is plotted at the NPC position as the slow walker transforms. The routine depends on M% from PROC MOVEEM."
+          ]
+        },
+        {
+          "start": 1700,
+          "group": "NPC logic",
+          "title": "FN OORAGAIN — support below the walker",
+          "paragraphs": [
+            "This function returns whether the cell immediately below the NPC is nonzero. It treats all nonzero tiles as support, whereas player collision specifically tests tiles 1 and 2."
+          ]
+        },
+        {
+          "start": 1720,
+          "group": "Effects",
+          "title": "PROC KILLME — player death effect",
+          "paragraphs": [
+            "The previously displayed bank is selected for drawing. After a short pause, nested loops scatter coloured points around the player, with the radius growing over time. MY% is reset for the next life.",
+            "RND(-2) repeatedly resets the random generator within the effect, so the pattern is deterministic rather than a wholly new scatter on every loop."
+          ]
+        },
+        {
+          "start": 1800,
+          "group": "Levels",
+          "title": "PROC NEXTLEVEL — pause and advance",
+          "paragraphs": [
+            "A half-second pause precedes the screen-bank selection and increment of LE%. There is no ENDPROC before the following DEF PROC COLOURFUL, so execution falls through into that routine’s drawing body before its ENDPROC returns.",
+            "This is unusual but supplies the colourful transition as part of advancing a level. It should not be “fixed” merely because it differs from modern procedure layout."
+          ]
+        },
+        {
+          "start": 1840,
+          "group": "Effects",
+          "title": "PROC COLOURFUL — layered ellipses",
+          "paragraphs": [
+            "Filled ellipses with decreasing radii and changing rotation create the colourful background. The same drawing body is used from the title screen and by fall-through from PROC NEXTLEVEL."
+          ]
+        },
+        {
+          "start": 1900,
+          "group": "Title and controls",
+          "title": "PROC STARTSCREEN — title and start menu",
+          "paragraphs": [
+            "The first screen bank is both displayed and selected for drawing. PROC COLOURFUL paints the backdrop, then the original Bill sprite and Thomas’s credit are plotted. S starts; R opens the key-redefinition procedure. The previous score is shown after a completed game."
+          ]
+        },
+        {
+          "start": 2060,
+          "group": "Title and controls",
+          "title": "PROC RED — redefine six keys",
+          "paragraphs": [
+            "The player is prompted for Up, Down, Left, Right, Create/Destory block and Suicide, preserving the original spelling in the DATA statement. The code waits for all keys to be released and then for a new internal key number.",
+            "Adding one converts the key number returned by INKEY -129 into the negative-INKEY polling convention used by the game."
+          ]
+        }
+      ]
+    },
+    {
+      "label": "!Editor",
+      "url": "Editor.txt",
+      "name": "!Editor,ffb",
+      "lines": 48,
+      "annotations": [
+        {
+          "start": 10,
+          "title": "Display, palette and workspace",
+          "paragraphs": [
+            "The editor selects MODE 9 and loads the same palette and sprite area as the game. B%(19,14) holds the 20 × 15 tile grid."
+          ]
+        },
+        {
+          "start": 90,
+          "title": "Choose and load a level",
+          "paragraphs": [
+            "The numbered level file is read with x as the outer loop and y as the inner loop. A missing file leaves a blank map. MN% selects the first tile in the scrolling palette; U% is the current paint tile."
+          ]
+        },
+        {
+          "start": 200,
+          "title": "Draw the grid and enter the mouse loop",
+          "paragraphs": [
+            "The level is plotted above a one-row tile palette. Graphics y increases upwards, so map row zero begins 64 units above the bottom of the screen."
+          ]
+        },
+        {
+          "start": 270,
+          "title": "Select tiles, scroll the palette and paint",
+          "paragraphs": [
+            "The bottom-left and bottom-right areas scroll the palette while the pointer is over them. Clicking a palette cell selects its tile number. Clicking higher up paints the selected tile into B%() and plots its sprite.",
+            "Space calls PROC EN to save the current grid. The editor does not validate player starts, exits, enemy counts or boundary walls; the game relies on sensible map contents."
+          ]
+        },
+        {
+          "start": 370,
+          "title": "PROC MENU — draw eighteen tile choices",
+          "paragraphs": [
+            "The palette contains 18 consecutive numbered sprites beginning at MN%. The left and right scrolling areas occupy the remaining screen width."
+          ]
+        },
+        {
+          "start": 420,
+          "title": "PROC EN — save and restart",
+          "paragraphs": [
+            "The 300 map cells are written as single bytes in x-major order, exactly matching the game loader. RUN restarts the editor after saving and asks for another level number."
+          ]
+        }
+      ]
+    }
+  ],
+  "bugs": [
+    {
+      "severity": "serious",
+      "title": "Map probes assume safe boundary tiles",
+      "lines": "610–680, 990–1030, 1370–1590, 1700–1710",
+      "confidence": "Confirmed unchecked indices; failure depends on map and position",
+      "paragraphs": [
+        "The map bounds are x=0..19 and y=0..14. Movement, block creation and NPC routines probe neighbouring cells without consistently checking those bounds. For example, PROC MAGIC with X%=0 and FC%=1 computes XM%=-1, then accesses B%(-1,YM%). BASIC raises an array-bounds error rather than corrupting native memory.",
+        "Custom levels made in the supplied editor can expose this. Most original level boundaries are walled, although some contain open outer space. Normal play has not been exhaustively tested. The main-loop error handler at line 580 returns to the title screen, so such an error can appear to be an unexplained game restart."
+      ]
+    },
+    {
+      "severity": "logical",
+      "title": "Extra enemies in edited levels are loaded but never updated",
+      "lines": "40, 410–430, 1310",
+      "confidence": "Confirmed capacity mismatch; supplied levels stay within four enemies",
+      "paragraphs": [
+        "P%(20,5) reserves 21 NPC records and the loader increments NA% for each enemy. PROC MOVEEM nevertheless loops only from 0 to 3. A fifth enemy painted in the editor is loaded but never drawn or moved by this loop.",
+        "All ten supplied levels contain four or fewer enemies, so this does not affect their intended roster. More than 21 enemy markers would instead overflow the BASIC array during loading. The editor does not enforce either limit."
+      ]
+    },
+    {
+      "severity": "inefficiency",
+      "title": "Restore the full 40 KiB background every frame",
+      "lines": "140–210, 600",
+      "confidence": "Confirmed implementation; a design trade-off",
+      "paragraphs": [
+        "The ARM routine copies the complete static screen into the next working bank on every update. This is simple and reliably removes the previous positions of moving sprites, but costs more memory traffic than restoring only changed rectangles.",
+        "This is an efficiency observation rather than a claim of incorrect behaviour."
+      ]
+    },
+    {
+      "severity": "redundancy",
+      "title": "NPC storage is larger than the movement loop uses",
+      "lines": "40, 310, 1310",
+      "confidence": "Confirmed unused capacity",
+      "paragraphs": [
+        "The array has room for 21 records, all initialised on each level, while the movement loop only visits four. The excess storage and initialisation are unnecessary for the supplied levels. This is the storage aspect of the extra-enemy mismatch described above, not a separate gameplay failure."
+      ]
+    }
+  ],
+  "files": [
+    {
+      "name": "!Editor,ffb",
+      "bytes": 853,
+      "date": "1992-06-19"
+    },
+    {
+      "name": "!Run,feb",
+      "bytes": 42,
+      "date": "1992-06-20"
+    },
+    {
+      "name": "!RunImage,ffb",
+      "bytes": 7191,
+      "date": "1992-06-21"
+    },
+    {
+      "name": "!Sprites,ff9",
+      "bytes": 312,
+      "date": "1992-06-19"
+    },
+    {
+      "name": "1,ffd",
+      "bytes": 300,
+      "date": "1992-06-19"
+    },
+    {
+      "name": "10,ffd",
+      "bytes": 300,
+      "date": "1992-06-19"
+    },
+    {
+      "name": "2,ffd",
+      "bytes": 300,
+      "date": "1992-06-19"
+    },
+    {
+      "name": "3,ffd",
+      "bytes": 300,
+      "date": "1992-06-19"
+    },
+    {
+      "name": "4,ffd",
+      "bytes": 300,
+      "date": "1992-06-19"
+    },
+    {
+      "name": "5,ffd",
+      "bytes": 300,
+      "date": "1992-06-19"
+    },
+    {
+      "name": "6,ffd",
+      "bytes": 300,
+      "date": "1992-06-27"
+    },
+    {
+      "name": "7,ffd",
+      "bytes": 300,
+      "date": "1992-06-19"
+    },
+    {
+      "name": "8,ffd",
+      "bytes": 300,
+      "date": "1992-06-19"
+    },
+    {
+      "name": "9,ffd",
+      "bytes": 300,
+      "date": "1992-06-19"
+    },
+    {
+      "name": "Palette,fed",
+      "bytes": 120,
+      "date": "1992-03-07"
+    },
+    {
+      "name": "Sprites,ff9",
+      "bytes": 14180,
+      "date": "1992-06-19"
+    }
+  ],
+  "sprites": [
+    {
+      "name": "!bill",
+      "file": "appSprites-bill.png",
+      "width": 16,
+      "height": 16,
+      "mode": 9,
+      "displayWidth": 16,
+      "displayHeight": 16,
+      "original": "!Sprites,ff9"
+    },
+    {
+      "name": "0",
+      "file": "Sprites-0.png",
+      "width": 16,
+      "height": 16,
+      "mode": 9,
+      "displayWidth": 16,
+      "displayHeight": 16,
+      "original": "Sprites,ff9"
+    },
+    {
+      "name": "1",
+      "file": "Sprites-1.png",
+      "width": 16,
+      "height": 16,
+      "mode": 9,
+      "displayWidth": 16,
+      "displayHeight": 16,
+      "original": "Sprites,ff9"
+    },
+    {
+      "name": "2",
+      "file": "Sprites-2.png",
+      "width": 16,
+      "height": 16,
+      "mode": 9,
+      "displayWidth": 16,
+      "displayHeight": 16,
+      "original": "Sprites,ff9"
+    },
+    {
+      "name": "3",
+      "file": "Sprites-3.png",
+      "width": 16,
+      "height": 16,
+      "mode": 9,
+      "displayWidth": 16,
+      "displayHeight": 16,
+      "original": "Sprites,ff9"
+    },
+    {
+      "name": "4",
+      "file": "Sprites-4.png",
+      "width": 16,
+      "height": 14,
+      "mode": 9,
+      "displayWidth": 16,
+      "displayHeight": 14,
+      "original": "Sprites,ff9"
+    },
+    {
+      "name": "5",
+      "file": "Sprites-5.png",
+      "width": 16,
+      "height": 16,
+      "mode": 9,
+      "displayWidth": 16,
+      "displayHeight": 16,
+      "original": "Sprites,ff9"
+    },
+    {
+      "name": "6",
+      "file": "Sprites-6.png",
+      "width": 14,
+      "height": 16,
+      "mode": 9,
+      "displayWidth": 14,
+      "displayHeight": 16,
+      "original": "Sprites,ff9"
+    },
+    {
+      "name": "7",
+      "file": "Sprites-7.png",
+      "width": 16,
+      "height": 13,
+      "mode": 9,
+      "displayWidth": 16,
+      "displayHeight": 13,
+      "original": "Sprites,ff9"
+    },
+    {
+      "name": "8",
+      "file": "Sprites-8.png",
+      "width": 12,
+      "height": 16,
+      "mode": 9,
+      "displayWidth": 12,
+      "displayHeight": 16,
+      "original": "Sprites,ff9"
+    },
+    {
+      "name": "9",
+      "file": "Sprites-9.png",
+      "width": 12,
+      "height": 16,
+      "mode": 9,
+      "displayWidth": 12,
+      "displayHeight": 16,
+      "original": "Sprites,ff9"
+    },
+    {
+      "name": "10",
+      "file": "Sprites-10.png",
+      "width": 12,
+      "height": 16,
+      "mode": 9,
+      "displayWidth": 12,
+      "displayHeight": 16,
+      "original": "Sprites,ff9"
+    },
+    {
+      "name": "11",
+      "file": "Sprites-11.png",
+      "width": 12,
+      "height": 16,
+      "mode": 9,
+      "displayWidth": 12,
+      "displayHeight": 16,
+      "original": "Sprites,ff9"
+    },
+    {
+      "name": "12",
+      "file": "Sprites-12.png",
+      "width": 16,
+      "height": 16,
+      "mode": 9,
+      "displayWidth": 16,
+      "displayHeight": 16,
+      "original": "Sprites,ff9"
+    },
+    {
+      "name": "13",
+      "file": "Sprites-13.png",
+      "width": 12,
+      "height": 16,
+      "mode": 9,
+      "displayWidth": 12,
+      "displayHeight": 16,
+      "original": "Sprites,ff9"
+    },
+    {
+      "name": "14",
+      "file": "Sprites-14.png",
+      "width": 16,
+      "height": 16,
+      "mode": 9,
+      "displayWidth": 16,
+      "displayHeight": 16,
+      "original": "Sprites,ff9"
+    },
+    {
+      "name": "15",
+      "file": "Sprites-15.png",
+      "width": 11,
+      "height": 16,
+      "mode": 9,
+      "displayWidth": 11,
+      "displayHeight": 16,
+      "original": "Sprites,ff9"
+    },
+    {
+      "name": "16",
+      "file": "Sprites-16.png",
+      "width": 16,
+      "height": 16,
+      "mode": 9,
+      "displayWidth": 16,
+      "displayHeight": 16,
+      "original": "Sprites,ff9"
+    },
+    {
+      "name": "17",
+      "file": "Sprites-17.png",
+      "width": 16,
+      "height": 16,
+      "mode": 9,
+      "displayWidth": 16,
+      "displayHeight": 16,
+      "original": "Sprites,ff9"
+    },
+    {
+      "name": "18",
+      "file": "Sprites-18.png",
+      "width": 16,
+      "height": 16,
+      "mode": 9,
+      "displayWidth": 16,
+      "displayHeight": 16,
+      "original": "Sprites,ff9"
+    },
+    {
+      "name": "19",
+      "file": "Sprites-19.png",
+      "width": 16,
+      "height": 16,
+      "mode": 9,
+      "displayWidth": 16,
+      "displayHeight": 16,
+      "original": "Sprites,ff9"
+    },
+    {
+      "name": "23",
+      "file": "Sprites-23.png",
+      "width": 12,
+      "height": 16,
+      "mode": 9,
+      "displayWidth": 12,
+      "displayHeight": 16,
+      "original": "Sprites,ff9"
+    },
+    {
+      "name": "22",
+      "file": "Sprites-22.png",
+      "width": 12,
+      "height": 16,
+      "mode": 9,
+      "displayWidth": 12,
+      "displayHeight": 16,
+      "original": "Sprites,ff9"
+    },
+    {
+      "name": "21",
+      "file": "Sprites-21.png",
+      "width": 12,
+      "height": 16,
+      "mode": 9,
+      "displayWidth": 12,
+      "displayHeight": 16,
+      "original": "Sprites,ff9"
+    },
+    {
+      "name": "20",
+      "file": "Sprites-20.png",
+      "width": 12,
+      "height": 16,
+      "mode": 9,
+      "displayWidth": 12,
+      "displayHeight": 16,
+      "original": "Sprites,ff9"
+    },
+    {
+      "name": "24",
+      "file": "Sprites-24.png",
+      "width": 16,
+      "height": 16,
+      "mode": 9,
+      "displayWidth": 16,
+      "displayHeight": 16,
+      "original": "Sprites,ff9"
+    },
+    {
+      "name": "25",
+      "file": "Sprites-25.png",
+      "width": 16,
+      "height": 16,
+      "mode": 9,
+      "displayWidth": 16,
+      "displayHeight": 16,
+      "original": "Sprites,ff9"
+    },
+    {
+      "name": "26",
+      "file": "Sprites-26.png",
+      "width": 16,
+      "height": 16,
+      "mode": 9,
+      "displayWidth": 16,
+      "displayHeight": 16,
+      "original": "Sprites,ff9"
+    },
+    {
+      "name": "27",
+      "file": "Sprites-27.png",
+      "width": 16,
+      "height": 15,
+      "mode": 9,
+      "displayWidth": 16,
+      "displayHeight": 15,
+      "original": "Sprites,ff9"
+    },
+    {
+      "name": "28",
+      "file": "Sprites-28.png",
+      "width": 16,
+      "height": 15,
+      "mode": 9,
+      "displayWidth": 16,
+      "displayHeight": 15,
+      "original": "Sprites,ff9"
+    },
+    {
+      "name": "29",
+      "file": "Sprites-29.png",
+      "width": 16,
+      "height": 15,
+      "mode": 9,
+      "displayWidth": 16,
+      "displayHeight": 15,
+      "original": "Sprites,ff9"
+    },
+    {
+      "name": "30",
+      "file": "Sprites-30.png",
+      "width": 16,
+      "height": 15,
+      "mode": 9,
+      "displayWidth": 16,
+      "displayHeight": 15,
+      "original": "Sprites,ff9"
+    },
+    {
+      "name": "bill",
+      "file": "Sprites-bill.png",
+      "width": 159,
+      "height": 38,
+      "mode": 12,
+      "displayWidth": 159,
+      "displayHeight": 76,
+      "original": "Sprites,ff9"
+    }
+  ]
+}
