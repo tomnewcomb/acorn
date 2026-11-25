@@ -2,7 +2,7 @@
 const GameArchive=(()=>{
  const escape=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
  const url=s=>s.split('/').map(encodeURIComponent).join('/');
- const views=[['overview','Overview'],['source','Original source'],['annotated','Annotated source'],['bugs','Discovered bugs'],['artifacts','Screenshots & artifacts'],['audio','Sound effects'],['demo','Interactive demo']];
+ const views=[['overview','Overview'],['source','Original source'],['annotated','Annotated source'],['artifacts','Screenshots & artifacts'],['audio','Sound effects'],['demo','Interactive demo'],['bugs','Discovered bugs']];
  const categories=[['serious','Serious / runtime failures'],['logical','Logical behaviour'],['inefficiency','Inefficiencies'],['redundancy','Redundancies'],['cleanup','Cleanup'],['design caveat','Design caveats']];
  function page(id){
   const game=archiveGameCatalog.find(g=>g.id===id),base='programs/'+id+'/',route='#/programs/'+id;
